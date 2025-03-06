@@ -360,6 +360,9 @@
                         // Set up event listeners
                         setupEventListeners();
                         
+                        // Make sure the settings dialog is hidden initially
+                        devicesDialog.classList.add('hidden');
+                        
                         // Poll for new connections (in a real app this would use WebSockets)
                         pollForConnections();
                     } else {
@@ -498,6 +501,7 @@
                         devicesDialog.classList.remove('hidden');
                     } catch (error) {
                         debugLog('Error loading devices:', error);
+                        alert('Error loading media devices: ' + error.message);
                     }
                 });
                 
@@ -664,30 +668,42 @@
                         });
                     }
                     
-                    // Set current devices as selected
+                    // Set current devices as selected if we have a stream
                     if (localStream) {
                         const currentVideoTrack = localStream.getVideoTracks()[0];
                         const currentAudioTrack = localStream.getAudioTracks()[0];
                         
                         if (currentVideoTrack) {
-                            const videoDeviceId = currentVideoTrack.getSettings().deviceId;
-                            if (videoDeviceId) {
-                                debugLog('Current video device:', videoDeviceId);
-                                videoDevices.value = videoDeviceId;
+                            const settings = currentVideoTrack.getSettings();
+                            if (settings && settings.deviceId) {
+                                debugLog('Current video device:', settings.deviceId);
+                                // Find the option with this device ID
+                                for (let i = 0; i < videoDevices.options.length; i++) {
+                                    if (videoDevices.options[i].value === settings.deviceId) {
+                                        videoDevices.selectedIndex = i;
+                                        break;
+                                    }
+                                }
                             }
                         }
                         
                         if (currentAudioTrack) {
-                            const audioDeviceId = currentAudioTrack.getSettings().deviceId;
-                            if (audioDeviceId) {
-                                debugLog('Current audio device:', audioDeviceId);
-                                audioDevices.value = audioDeviceId;
+                            const settings = currentAudioTrack.getSettings();
+                            if (settings && settings.deviceId) {
+                                debugLog('Current audio device:', settings.deviceId);
+                                // Find the option with this device ID
+                                for (let i = 0; i < audioDevices.options.length; i++) {
+                                    if (audioDevices.options[i].value === settings.deviceId) {
+                                        audioDevices.selectedIndex = i;
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
                 } catch (error) {
                     debugLog('Error enumerating devices:', error);
-                    alert('Error loading media devices. ' + error.message);
+                    throw new Error('Failed to load media devices: ' + error.message);
                 }
             }
             
