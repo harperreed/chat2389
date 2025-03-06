@@ -105,6 +105,51 @@ def room_status(room_id):
         'users': active_rooms[room_id]['users']
     })
 
+@app.route('/api/get-signals', methods=['POST'])
+def get_signals():
+    """Get pending WebRTC signals for a user."""
+    data = request.json
+    room_id = data.get('roomId')
+    user_id = data.get('userId')
+    
+    if not all([room_id, user_id]):
+        logger.warning("Missing required fields in get-signals request")
+        return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+    
+    if room_id not in active_rooms:
+        logger.warning(f"Attempt to get signals from non-existent room: {room_id}")
+        return jsonify({'success': False, 'error': 'Room does not exist'}), 404
+    
+    # Get signals for this user
+    signals = []
+    processed_indices = []
+    
+    if 'signals' in active_rooms[room_id]:
+        # First, find signals for this user
+        for index, signal in enumerate(active_rooms[room_id]['signals']):
+            # Get signals directed to this user that haven't been processed
+            if signal['to'] == user_id and not signal['processed']:
+                signals.append({
+                    'from': signal['from'],
+                    'signal': signal['signal']
+                })
+                signal['processed'] = True  # Mark as processed
+                processed_indices.append(index)
+        
+        # Clean up old processed signals to prevent memory buildup
+        # Only keep the 20 most recent processed signals for history
+        active_rooms[room_id]['signals'] = [
+            s for i, s in enumerate(active_rooms[room_id]['signals']) 
+            if not s['processed'] or i >= len(active_rooms[room_id]['signals']) - 20
+        ]
+    
+    logger.debug(f"Returning {len(signals)} signals for user {user_id} in room {room_id}")
+    
+    return jsonify({
+        'success': True,
+        'signals': signals
+    })
+
 @app.route('/api/signal', methods=['POST'])
 def signal():
     """Exchange WebRTC signaling data."""
@@ -122,13 +167,22 @@ def signal():
         logger.warning(f"Attempt to signal in non-existent room: {room_id}")
         return jsonify({'success': False, 'error': 'Room does not exist'}), 404
     
-    # Here you would typically forward the signal to the target user
-    # In a real application, this would use WebSockets for real-time communication
-    logger.debug(f"Received signal from {user_id} for {target_id if target_id else 'all users'} in room {room_id}")
-    logger.debug(f"Signal data: {json.dumps(signal_data)[:100]}...")  # Log first 100 chars of signal data
+    # Store the signal for the target user to retrieve
+    # In a real app, this would use WebSockets instead of this polling approach
+    if 'signals' not in active_rooms[room_id]:
+        active_rooms[room_id]['signals'] = []
     
-    # This is a simplified implementation that just acknowledges the signal
-    # In a real app, you would forward this signal to the target peer
+    # Add the signal to the room's signals list
+    active_rooms[room_id]['signals'].append({
+        'from': user_id,
+        'to': target_id,
+        'signal': signal_data,
+        'processed': False
+    })
+    
+    logger.debug(f"Stored signal from {user_id} for {target_id} in room {room_id}")
+    logger.debug(f"Signal type: {signal_data.get('type')}")
+    
     return jsonify({'success': True})
 
 @app.route('/room/<room_id>')
@@ -142,4 +196,9 @@ def room(room_id):
     return render_template('room.html', room_id=room_id)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Use environment variables for host and port if available
+    host = os.environ.get('HOST', '0.0.0.0')
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    
+    app.run(host=host, port=port, debug=debug)

@@ -100,6 +100,16 @@
         .video-container.local video {
             transform: scaleX(-1); /* Mirror the local video */
         }
+        .video-container.local.hidden {
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+            /* Using position:absolute and zero size instead of display:none 
+               to ensure the video keeps capturing even when hidden */
+        }
         .video-label {
             position: absolute;
             bottom: 10px;
@@ -120,7 +130,7 @@
             background-color: #222;
         }
         .hidden {
-            display: none;
+            display: none !important;
         }
         .chat-container {
             margin-top: 20px;
@@ -131,6 +141,11 @@
             display: flex;
             flex-direction: column;
             background-color: white;
+            position: relative;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .chat-messages {
             flex: 1;
@@ -155,25 +170,46 @@
         .message {
             margin-bottom: 10px;
             padding: 8px 12px;
-            border-radius: 4px;
+            border-radius: 18px;
             max-width: 80%;
+            position: relative;
+            clear: both;
+            font-size: 14px;
         }
         .message.local {
-            background-color: #e9f0fe;
-            align-self: flex-end;
-            margin-left: auto;
+            background-color: #dcf8c6;
+            float: right;
+            border-top-right-radius: 0;
         }
         .message.remote {
             background-color: #f1f1f1;
-            align-self: flex-start;
+            float: left;
+            border-top-left-radius: 0;
         }
         .message .sender {
             font-weight: bold;
             margin-bottom: 4px;
             font-size: 12px;
+            color: #666;
         }
         .message .content {
             word-break: break-word;
+        }
+        .message .timestamp {
+            font-size: 10px;
+            color: #999;
+            margin-top: 4px;
+            text-align: right;
+        }
+        .chat-messages {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+        .chat-messages::after {
+            content: "";
+            clear: both;
+            display: table;
         }
         #devices-dialog {
             position: fixed;
@@ -242,6 +278,8 @@
             <div class="controls">
                 <button id="toggleVideoBtn" class="secondary-btn">Pause Video</button>
                 <button id="toggleAudioBtn" class="secondary-btn">Mute Audio</button>
+                <button id="toggleSelfViewBtn" class="secondary-btn">Show Self View</button>
+                <button id="toggleChatBtn" class="secondary-btn">Show Chat</button>
                 <button id="settingsBtn" class="secondary-btn">Settings</button>
                 <button id="leaveRoomBtn" class="danger-btn">Leave Room</button>
             </div>
@@ -315,24 +353,47 @@
             const peerConfiguration = {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' }
+                ],
+                iceCandidatePoolSize: 10,
+                iceTransportPolicy: 'all',
+                bundlePolicy: 'max-bundle',
+                rtcpMuxPolicy: 'require'
             };
             
             // DOM elements
             const localVideo = document.getElementById('localVideo');
+            const localVideoContainer = document.getElementById('localVideoContainer');
             const videoGrid = document.getElementById('videoGrid');
             const connectionStatus = document.getElementById('connectionStatus');
             const copyRoomIdBtn = document.getElementById('copyRoomIdBtn');
             const toggleVideoBtn = document.getElementById('toggleVideoBtn');
             const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+            const toggleSelfViewBtn = document.getElementById('toggleSelfViewBtn');
+            const toggleChatBtn = document.getElementById('toggleChatBtn');
             const settingsBtn = document.getElementById('settingsBtn');
             const leaveRoomBtn = document.getElementById('leaveRoomBtn');
-            const devicesDialog = document.getElementById('devices-dialog');
-            const closeDialogBtn = document.getElementById('closeDialogBtn');
-            const videoDevices = document.getElementById('videoDevices');
-            const audioDevices = document.getElementById('audioDevices');
-            const applySettingsBtn = document.getElementById('applySettingsBtn');
+            
+            // Chat elements
+            const chatContainer = document.getElementById('chatContainer');
+            const chatMessages = document.getElementById('chatMessages');
+            const chatInput = document.getElementById('chatInput');
+            const sendMsgBtn = document.getElementById('sendMsgBtn');
+            
+            // Media settings dialog elements - ensure they're hidden initially
+            let devicesDialog = document.getElementById('devices-dialog');
+            let closeDialogBtn = document.getElementById('closeDialogBtn');
+            let videoDevices = document.getElementById('videoDevices');
+            let audioDevices = document.getElementById('audioDevices');
+            let applySettingsBtn = document.getElementById('applySettingsBtn');
+            
+            // Ensure the dialog is hidden initially
+            if (devicesDialog) {
+                devicesDialog.classList.add('hidden');
+            }
             
             // Initialize the room
             async function initRoom() {
@@ -360,8 +421,10 @@
                         // Set up event listeners
                         setupEventListeners();
                         
-                        // Make sure the settings dialog is hidden initially
-                        devicesDialog.classList.add('hidden');
+                        // Dialog should already be hidden from initial setup
+                        
+                        // Ensure button state matches the self-view visibility
+                        toggleSelfViewBtn.innerText = 'Show Self View';
                         
                         // Poll for new connections (in a real app this would use WebSockets)
                         pollForConnections();
@@ -409,8 +472,17 @@
                         }
                     }
                     
-                    // Display the stream
+                    // Display the stream - always connect it to the video element
+                    // even if we're hiding the UI element
                     localVideo.srcObject = localStream;
+                    
+                    // Hide local video UI by default but keep the stream active
+                    localVideoContainer.classList.add('hidden');
+                    
+                    // Force the video to play to ensure the stream is active
+                    localVideo.play().catch(err => {
+                        debugLog('Warning: Could not auto-play local video:', err.message);
+                    });
                     
                     // Log which tracks were acquired
                     const videoTracks = localStream.getVideoTracks();
@@ -493,11 +565,34 @@
                     }
                 });
                 
+                // Toggle self view button
+                toggleSelfViewBtn.addEventListener('click', function() {
+                    if (localVideoContainer.classList.contains('hidden')) {
+                        // Show self view
+                        localVideoContainer.classList.remove('hidden');
+                        toggleSelfViewBtn.innerText = 'Hide Self View';
+                        debugLog('Self view shown');
+                    } else {
+                        // Hide self view
+                        localVideoContainer.classList.add('hidden');
+                        toggleSelfViewBtn.innerText = 'Show Self View';
+                        debugLog('Self view hidden');
+                    }
+                });
+                
                 // Settings button
                 settingsBtn.addEventListener('click', async function() {
                     debugLog('Opening settings dialog');
                     try {
+                        // Make sure the dialog is loaded before showing it
+                        if (!devicesDialog) {
+                            devicesDialog = document.getElementById('devices-dialog');
+                        }
+                        
+                        // Load devices before showing dialog
                         await loadAvailableDevices();
+                        
+                        // Show the dialog
                         devicesDialog.classList.remove('hidden');
                     } catch (error) {
                         debugLog('Error loading devices:', error);
@@ -507,7 +602,17 @@
                 
                 // Close dialog button
                 closeDialogBtn.addEventListener('click', function() {
+                    debugLog('Closing settings dialog');
                     devicesDialog.classList.add('hidden');
+                });
+                
+                // Close dialog when clicking outside of it
+                devicesDialog.addEventListener('click', function(event) {
+                    // Only close if clicking outside the dialog content
+                    if (event.target === devicesDialog) {
+                        debugLog('Closing settings dialog (clicked outside)');
+                        devicesDialog.classList.add('hidden');
+                    }
                 });
                 
                 // Cancel button in settings dialog
@@ -588,6 +693,41 @@
                     } catch (error) {
                         debugLog('Error applying new settings:', error);
                         alert('Error applying new settings: ' + error.message);
+                    }
+                });
+                
+                // Toggle chat button
+                toggleChatBtn.addEventListener('click', function() {
+                    if (chatContainer.classList.contains('hidden')) {
+                        // Show chat
+                        chatContainer.classList.remove('hidden');
+                        toggleChatBtn.innerText = 'Hide Chat';
+                        chatInput.focus();
+                        // Scroll to bottom of chat
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        
+                        // Clear notification
+                        const notif = toggleChatBtn.querySelector('.chat-notification');
+                        if (notif) {
+                            notif.remove();
+                        }
+                    } else {
+                        // Hide chat
+                        chatContainer.classList.add('hidden');
+                        toggleChatBtn.innerText = 'Show Chat';
+                    }
+                });
+                
+                // Send message button
+                sendMsgBtn.addEventListener('click', function() {
+                    sendChatMessage();
+                });
+                
+                // Send message on Enter key
+                chatInput.addEventListener('keypress', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        sendChatMessage();
                     }
                 });
                 
@@ -716,31 +856,145 @@
                 
                 // Add local tracks to the peer connection
                 if (localStream) {
+                    debugLog(`Adding ${localStream.getTracks().length} local tracks to peer connection`);
                     localStream.getTracks().forEach(track => {
-                        peerConnection.addTrack(track, localStream);
+                        const sender = peerConnection.addTrack(track, localStream);
+                        debugLog(`Added ${track.kind} track to peer connection`);
                     });
+                } else {
+                    debugLog('Warning: No local stream to add to peer connection');
                 }
                 
                 // ICE candidate event
                 peerConnection.onicecandidate = event => {
                     if (event.candidate) {
+                        debugLog(`Generated ICE candidate for peer ${peerId}`);
                         sendSignal(peerId, {
                             type: 'ice-candidate',
                             candidate: event.candidate
                         });
+                    } else {
+                        debugLog(`ICE candidate gathering complete for peer ${peerId}`);
+                    }
+                };
+                
+                // ICE gathering state change
+                peerConnection.onicegatheringstatechange = () => {
+                    debugLog(`ICE gathering state change: ${peerConnection.iceGatheringState} for peer ${peerId}`);
+                };
+                
+                // Connection state change
+                peerConnection.onconnectionstatechange = () => {
+                    debugLog(`Connection state change: ${peerConnection.connectionState} for peer ${peerId}`);
+                    
+                    // Handle connection failures
+                    if (peerConnection.connectionState === 'failed' || 
+                        peerConnection.connectionState === 'disconnected' ||
+                        peerConnection.connectionState === 'closed') {
+                        debugLog(`Connection to peer ${peerId} failed or closed`);
+                    }
+                    
+                    // Handle successful connections
+                    if (peerConnection.connectionState === 'connected') {
+                        debugLog(`Successfully connected to peer ${peerId}`);
                     }
                 };
                 
                 // ICE connection state change
                 peerConnection.oniceconnectionstatechange = () => {
-                    debugLog(`ICE state change: ${peerConnection.iceConnectionState} for peer ${peerId}`);
+                    debugLog(`ICE connection state change: ${peerConnection.iceConnectionState} for peer ${peerId}`);
+                    
+                    // Reconnection logic for failed ICE connections
+                    if (peerConnection.iceConnectionState === 'failed') {
+                        debugLog(`ICE connection failed for peer ${peerId}, attempting to restart ICE`);
+                        peerConnection.restartIce();
+                    }
+                };
+                
+                // Signaling state change
+                peerConnection.onsignalingstatechange = () => {
+                    debugLog(`Signaling state change: ${peerConnection.signalingState} for peer ${peerId}`);
                 };
                 
                 // Track event - when remote stream is received
                 peerConnection.ontrack = event => {
-                    debugLog(`Received remote track from peer ${peerId}`);
-                    const remoteStream = event.streams[0];
-                    addRemoteVideo(peerId, remoteStream);
+                    debugLog(`Received remote track from peer ${peerId}: ${event.track.kind}`);
+                    
+                    // Log detailed track information
+                    debugLog(`Track details: enabled=${event.track.enabled}, readyState=${event.track.readyState}, muted=${event.track.muted}`);
+                    
+                    // Always ensure tracks are enabled
+                    if (!event.track.enabled) {
+                        debugLog(`Enabling disabled track: ${event.track.kind}`);
+                        event.track.enabled = true;
+                    }
+                    
+                    if (event.streams && event.streams[0]) {
+                        const remoteStream = event.streams[0];
+                        debugLog(`Adding remote stream from peer ${peerId} with ${remoteStream.getTracks().length} tracks`);
+                        
+                        const videoTracks = remoteStream.getVideoTracks();
+                        const audioTracks = remoteStream.getAudioTracks();
+                        
+                        debugLog(`Remote stream has ${videoTracks.length} video tracks and ${audioTracks.length} audio tracks`);
+                        
+                        // Ensure video tracks are enabled
+                        videoTracks.forEach(track => {
+                            if (!track.enabled) {
+                                debugLog(`Enabling disabled video track`);
+                                track.enabled = true;
+                            }
+                        });
+                        
+                        // Create or update video element for this peer
+                        addRemoteVideo(peerId, remoteStream);
+                        
+                        // Add track end event listener to detect if the track stops
+                        event.track.onended = () => {
+                            debugLog(`Track ended for peer ${peerId}: ${event.track.kind}`);
+                        };
+                        
+                        event.track.onmute = () => {
+                            debugLog(`Track muted for peer ${peerId}: ${event.track.kind}`);
+                        };
+                        
+                        event.track.onunmute = () => {
+                            debugLog(`Track unmuted for peer ${peerId}: ${event.track.kind}`);
+                        };
+                    } else {
+                        debugLog(`Warning: Received track without stream from peer ${peerId}`);
+                        
+                        // Create a new stream with the received track as a fallback
+                        const fallbackStream = new MediaStream([event.track]);
+                        debugLog(`Created fallback stream with single ${event.track.kind} track`);
+                        addRemoteVideo(peerId, fallbackStream);
+                    }
+                    
+                    // Force RTP sender to send maximum quality for remote tracks
+                    if (event.track.kind === 'video' && event.track.getSettings) {
+                        const settings = event.track.getSettings();
+                        debugLog(`Remote video settings: ${JSON.stringify(settings)}`);
+                    }
+                };
+                
+                // Negotiation needed event
+                peerConnection.onnegotiationneeded = async () => {
+                    debugLog(`Negotiation needed for peer ${peerId}`);
+                    try {
+                        debugLog(`Creating offer for peer ${peerId}`);
+                        const offer = await peerConnection.createOffer({
+                            offerToReceiveAudio: true,
+                            offerToReceiveVideo: true
+                        });
+                        await peerConnection.setLocalDescription(offer);
+                        
+                        sendSignal(peerId, {
+                            type: 'offer',
+                            offer: peerConnection.localDescription
+                        });
+                    } catch (error) {
+                        debugLog(`Error during negotiation with peer ${peerId}:`, error);
+                    }
                 };
                 
                 return peerConnection;
@@ -748,25 +1002,218 @@
             
             // Add a remote video to the grid
             function addRemoteVideo(peerId, stream) {
+                debugLog(`Adding/updating remote video for peer ${peerId}`);
+                
+                // Validate the stream has tracks
+                const videoTracks = stream.getVideoTracks();
+                const audioTracks = stream.getAudioTracks();
+                debugLog(`Remote stream has ${videoTracks.length} video tracks and ${audioTracks.length} audio tracks`);
+                
                 // Check if video already exists
                 const existingContainer = document.getElementById(`remote-${peerId}`);
                 if (existingContainer) {
+                    debugLog(`Found existing container for peer ${peerId}, updating stream`);
                     const existingVideo = existingContainer.querySelector('video');
-                    if (existingVideo.srcObject !== stream) {
-                        existingVideo.srcObject = stream;
+                    
+                    // Check if the existingVideo has valid content
+                    const hasValidContent = existingVideo.videoWidth > 0 && existingVideo.videoHeight > 0 && !existingVideo.paused;
+                    
+                    // Update if it's a different stream or if current video has no content
+                    if (existingVideo.srcObject !== stream || !hasValidContent) {
+                        debugLog(`Updating existing video with new stream (different=${existingVideo.srcObject !== stream}, valid=${hasValidContent})`);
+                        
+                        // If current stream has issues, fully reset it
+                        if (!hasValidContent) {
+                            existingVideo.srcObject = null;
+                            // Small delay to allow cleanup
+                            setTimeout(() => {
+                                existingVideo.srcObject = stream;
+                                existingVideo.play().catch(e => debugLog(`Error playing after reset: ${e.message}`));
+                            }, 100);
+                        } else {
+                            // Just update the stream normally
+                            existingVideo.srcObject = stream;
+                            
+                            // Force play after updating
+                            existingVideo.play().catch(e => {
+                                debugLog(`Error playing updated video: ${e.message}`);
+                                // Try to play after a delay
+                                setTimeout(() => {
+                                    existingVideo.play().catch(ee => 
+                                        debugLog(`Error playing video after delay: ${ee.message}`));
+                                }, 1000);
+                            });
+                        }
                     }
                     return;
                 }
                 
                 // Create a new video container
+                debugLog(`Creating new video container for peer ${peerId}`);
                 const videoContainer = document.createElement('div');
                 videoContainer.id = `remote-${peerId}`;
                 videoContainer.className = 'video-container';
                 
                 const video = document.createElement('video');
+                video.id = `video-${peerId}`;
                 video.autoplay = true;
                 video.playsInline = true;
+                video.muted = false; // Ensure remote videos are not muted
+                video.controls = false; // No controls needed
+                video.style.backgroundColor = "#222"; // Dark background while loading
+                
+                // Add debug overlay
+                const debugOverlay = document.createElement('div');
+                debugOverlay.className = 'debug-overlay';
+                debugOverlay.style.position = 'absolute';
+                debugOverlay.style.bottom = '40px';
+                debugOverlay.style.left = '10px';
+                debugOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                debugOverlay.style.color = 'white';
+                debugOverlay.style.padding = '2px 6px';
+                debugOverlay.style.borderRadius = '4px';
+                debugOverlay.style.fontSize = '10px';
+                debugOverlay.style.fontFamily = 'monospace';
+                debugOverlay.style.zIndex = '10';
+                debugOverlay.style.opacity = '0';
+                debugOverlay.style.transition = 'opacity 0.3s';
+                
+                // Update debug info when clicked
+                videoContainer.addEventListener('click', () => {
+                    if (!video.videoWidth) {
+                        debugOverlay.textContent = 'No video data';
+                    } else {
+                        debugOverlay.textContent = `${video.videoWidth}x${video.videoHeight} (${video.readyState})`;
+                    }
+                    debugOverlay.style.opacity = '1';
+                    setTimeout(() => { debugOverlay.style.opacity = '0'; }, 3000);
+                });
+                
+                debugLog(`Setting srcObject for remote video ${peerId}`);
+                // Now set the srcObject
                 video.srcObject = stream;
+                
+                // If stream has no video tracks, show a warning
+                if (stream.getVideoTracks().length === 0) {
+                    debugLog(`Warning: Remote stream for peer ${peerId} has no video tracks`);
+                    // We'll let the error placeholder handle this later
+                }
+                
+                // Add event listeners to debug video playback
+                video.onloadedmetadata = () => {
+                    debugLog(`Video for peer ${peerId} - metadata loaded, size: ${video.videoWidth}x${video.videoHeight}`);
+                    
+                    // Sometimes video dimensions can be 0 even if metadata is loaded
+                    if (video.videoWidth === 0 || video.videoHeight === 0) {
+                        debugLog(`Warning: Video dimensions are zero for peer ${peerId}`);
+                    }
+                    
+                    // Force play after metadata loads
+                    video.play().catch(e => {
+                        debugLog(`Error playing video: ${e.message}`);
+                        
+                        // Try again after a delay - autoplay might be blocked
+                        setTimeout(() => {
+                            debugLog(`Retrying video playback for peer ${peerId}`);
+                            video.play().catch(err => {
+                                debugLog(`Still failed to play after delay: ${err.message}`);
+                                // Show placeholder instead
+                                addVideoErrorPlaceholder(videoContainer, peerId);
+                            });
+                        }, 1000);
+                    });
+                    
+                    // Add a timer to check the video is actually displaying content
+                    setTimeout(() => {
+                        if (video.videoWidth === 0 || video.videoHeight === 0) {
+                            debugLog(`Video still has zero dimensions after 2 seconds for peer ${peerId}`);
+                            // Try to restart the stream
+                            video.srcObject = null;
+                            setTimeout(() => {
+                                video.srcObject = stream;
+                                video.play().catch(e => debugLog(`Error replaying after reset: ${e.message}`));
+                            }, 500);
+                        }
+                    }, 2000);
+                };
+                
+                video.oncanplay = () => {
+                    debugLog(`Video can play for peer ${peerId}`);
+                };
+                
+                video.onplay = () => {
+                    debugLog(`Video onplay triggered for peer ${peerId}`);
+                };
+                
+                video.onplaying = () => {
+                    debugLog(`Video for peer ${peerId} is now playing`);
+                    // Remove any error overlays if present
+                    const errorElement = videoContainer.querySelector('.video-placeholder');
+                    if (errorElement) {
+                        errorElement.remove();
+                    }
+                };
+                
+                video.onstalled = () => {
+                    debugLog(`Video stalled for peer ${peerId}`);
+                };
+                
+                video.onsuspend = () => {
+                    debugLog(`Video suspended for peer ${peerId}`);
+                };
+                
+                video.onwaiting = () => {
+                    debugLog(`Video waiting for peer ${peerId}`);
+                };
+                
+                video.onerror = (e) => {
+                    const errorMessage = video.error ? video.error.message : 'Unknown error';
+                    debugLog(`Video error for peer ${peerId}: ${errorMessage}`);
+                    addVideoErrorPlaceholder(videoContainer, peerId);
+                };
+                
+                // Add a timeout to check if video is actually playing
+                setTimeout(() => {
+                    if (video.paused || !video.videoWidth || !video.videoHeight) {
+                        debugLog(`Video not playing properly after timeout for peer ${peerId}`);
+                        
+                        // Try forcing a play
+                        video.play().catch(e => {
+                            debugLog(`Couldn't force play: ${e.message}`);
+                            // If still not playing, show error placeholder
+                            if (video.paused || !video.videoWidth) {
+                                addVideoErrorPlaceholder(videoContainer, peerId);
+                            }
+                        });
+                    } else {
+                        debugLog(`Video playing correctly after timeout check: ${video.videoWidth}x${video.videoHeight}`);
+                    }
+                }, 3000);
+                
+                // Add additional check at 5 seconds to catch any lingering issues
+                setTimeout(() => {
+                    if ((video.videoWidth === 0 || video.videoHeight === 0) && !videoContainer.querySelector('.video-placeholder')) {
+                        debugLog(`Video still has problems after 5 seconds for peer ${peerId}`);
+                        
+                        // Last resort: try to fully recreate the connection
+                        const peerConnection = peerConnections[peerId];
+                        if (peerConnection) {
+                            debugLog(`Attempting to restart connection with peer ${peerId}`);
+                            try {
+                                // First try with a simpler approach - restart ICE
+                                peerConnection.restartIce();
+                                
+                                // Force renegotiation as well
+                                setTimeout(() => {
+                                    initiateCall(peerId);
+                                }, 1000);
+                            } catch (e) {
+                                debugLog(`Failed to restart: ${e.message}`);
+                                addVideoErrorPlaceholder(videoContainer, peerId);
+                            }
+                        }
+                    }
+                }, 5000);
                 
                 const label = document.createElement('div');
                 label.className = 'video-label';
@@ -774,9 +1221,66 @@
                 
                 videoContainer.appendChild(video);
                 videoContainer.appendChild(label);
+                videoContainer.appendChild(debugOverlay);
                 videoGrid.appendChild(videoContainer);
                 
-                debugLog(`Added remote video for peer ${peerId}`);
+                debugLog(`Added new remote video element for peer ${peerId}`);
+            }
+            
+            // Add error placeholder when video fails to play
+            function addVideoErrorPlaceholder(videoContainer, peerId) {
+                // Check if an error message already exists
+                if (videoContainer.querySelector('.video-placeholder')) {
+                    return;
+                }
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'video-placeholder';
+                errorDiv.style.position = 'absolute';
+                errorDiv.style.top = '0';
+                errorDiv.style.left = '0';
+                errorDiv.style.right = '0';
+                errorDiv.style.bottom = '0';
+                errorDiv.style.display = 'flex';
+                errorDiv.style.alignItems = 'center';
+                errorDiv.style.justifyContent = 'center';
+                errorDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                errorDiv.style.color = 'white';
+                errorDiv.style.zIndex = '5';
+                errorDiv.innerHTML = `
+                    <div>
+                        <div style="text-align: center; margin-bottom: 10px;">⚠️ Video unavailable</div>
+                        <button id="retry-${peerId}" style="padding: 5px 10px; cursor: pointer;">Retry connection</button>
+                    </div>
+                `;
+                
+                videoContainer.appendChild(errorDiv);
+                
+                // Add retry button functionality
+                const retryButton = document.getElementById(`retry-${peerId}`);
+                if (retryButton) {
+                    retryButton.addEventListener('click', () => {
+                        debugLog(`Retry button clicked for peer ${peerId}`);
+                        
+                        // Remove the error message
+                        errorDiv.remove();
+                        
+                        // Try to restart the connection
+                        const peerConnection = peerConnections[peerId];
+                        if (peerConnection) {
+                            debugLog(`Restarting connection with peer ${peerId}`);
+                            try {
+                                // Try restarting ICE
+                                peerConnection.restartIce();
+                                
+                                // Also try renegotiating
+                                initiateCall(peerId);
+                            } catch (e) {
+                                debugLog(`Error restarting connection: ${e.message}`);
+                            }
+                        }
+                    });
+                }
             }
             
             // Remove a remote video from the grid
@@ -813,7 +1317,13 @@
             function handleReceivedSignal(senderId, signal) {
                 debugLog(`Received signal from ${senderId}:`, signal.type);
                 
-                // Get or create peer connection
+                // Handle chat messages separately (no peer connection needed)
+                if (signal.type === 'chat-message') {
+                    handleChatMessage(senderId, signal);
+                    return;
+                }
+                
+                // Get or create peer connection for WebRTC signals
                 let peerConnection = peerConnections[senderId];
                 if (!peerConnection) {
                     peerConnection = createPeerConnection(senderId);
@@ -839,24 +1349,52 @@
             
             // Handle an offer
             async function handleOffer(peerConnection, senderId, signal) {
+                debugLog(`Handling offer from peer ${senderId}`);
                 try {
+                    // Check if the connection is in a state where we can set the remote description
+                    if (peerConnection.signalingState === 'closed') {
+                        debugLog(`Cannot handle offer: peer connection to ${senderId} is closed`);
+                        return;
+                    }
+                    
+                    debugLog(`Setting remote description from offer`);
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.offer));
+                    
+                    debugLog(`Creating answer for peer ${senderId}`);
                     const answer = await peerConnection.createAnswer();
+                    
+                    debugLog(`Setting local description (answer)`);
                     await peerConnection.setLocalDescription(answer);
                     
+                    debugLog(`Sending answer to peer ${senderId}`);
                     sendSignal(senderId, {
                         type: 'answer',
-                        answer
+                        answer: peerConnection.localDescription
                     });
                 } catch (error) {
-                    debugLog('Error handling offer:', error);
+                    debugLog(`Error handling offer from peer ${senderId}:`, error);
                 }
             }
             
             // Handle an answer
             async function handleAnswer(peerConnection, signal) {
+                debugLog(`Handling answer from remote peer`);
                 try {
+                    // Check if the connection is in a state where we can set the remote description
+                    if (peerConnection.signalingState === 'closed') {
+                        debugLog(`Cannot handle answer: peer connection is closed`);
+                        return;
+                    }
+                    
+                    // Check if we have a local description set
+                    if (peerConnection.localDescription === null) {
+                        debugLog(`Warning: Received answer before setting local description`);
+                        return;
+                    }
+                    
+                    debugLog(`Setting remote description from answer`);
                     await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.answer));
+                    debugLog(`Successfully set remote description (answer)`);
                 } catch (error) {
                     debugLog('Error handling answer:', error);
                 }
@@ -864,8 +1402,17 @@
             
             // Handle an ICE candidate
             async function handleIceCandidate(peerConnection, signal) {
+                debugLog(`Handling ICE candidate from remote peer`);
                 try {
+                    // Check if the connection is in a valid state for adding ICE candidates
+                    if (peerConnection.remoteDescription === null) {
+                        debugLog(`Cannot add ICE candidate: Remote description is not set`);
+                        return;
+                    }
+                    
+                    debugLog(`Adding ICE candidate`);
                     await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                    debugLog(`Successfully added ICE candidate`);
                 } catch (error) {
                     debugLog('Error handling ICE candidate:', error);
                 }
@@ -944,26 +1491,148 @@
                 }
                 
                 try {
+                    // Check if connection is in a state where we can create an offer
+                    if (peerConnection.signalingState === 'closed') {
+                        debugLog(`Cannot create offer: connection to peer ${peerId} is closed. Creating new connection.`);
+                        delete peerConnections[peerId];
+                        peerConnection = createPeerConnection(peerId);
+                    }
+                    
+                    // Create offer with specific options to ensure receiving remote media
+                    debugLog(`Creating offer for peer ${peerId}`);
                     const offer = await peerConnection.createOffer({
                         offerToReceiveAudio: true,
-                        offerToReceiveVideo: true
+                        offerToReceiveVideo: true,
+                        iceRestart: true // Force ICE restart to handle problematic connections
                     });
+                    
+                    debugLog(`Setting local description (offer)`);
                     await peerConnection.setLocalDescription(offer);
                     
+                    // Wait a moment to ensure ICE gathering completes
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    debugLog(`Sending offer to peer ${peerId}`);
                     sendSignal(peerId, {
                         type: 'offer',
-                        offer
+                        offer: peerConnection.localDescription || offer
                     });
+                    
+                    // Log the state of the connection after creating the offer
+                    debugLog(`Connection state after creating offer: signaling=${peerConnection.signalingState}, ice=${peerConnection.iceConnectionState}`);
                 } catch (error) {
-                    debugLog('Error initiating call:', error);
+                    debugLog(`Error initiating call to peer ${peerId}:`, error);
+                    
+                    // Attempt recovery
+                    try {
+                        debugLog(`Attempting to create a new connection to peer ${peerId}`);
+                        delete peerConnections[peerId];
+                        const newPeerConnection = createPeerConnection(peerId);
+                        peerConnections[peerId] = newPeerConnection;
+                        
+                        // Try the offer again after a delay
+                        setTimeout(() => {
+                            initiateCall(peerId).catch(e => debugLog(`Recovery failed: ${e.message}`));
+                        }, 2000);
+                    } catch (recoveryError) {
+                        debugLog(`Recovery attempt failed:`, recoveryError);
+                    }
                 }
             }
             
-            // Poll for new connections (in a real app, would use WebSockets)
+            // Send a chat message to all peers
+            function sendChatMessage() {
+                const messageText = chatInput.value.trim();
+                if (!messageText) return;
+                
+                // Add message to local chat
+                addChatMessage(userId, messageText, true);
+                
+                // Clear input
+                chatInput.value = '';
+                
+                // Send to all peers
+                Object.keys(peerConnections).forEach(peerId => {
+                    sendSignal(peerId, {
+                        type: 'chat-message',
+                        message: messageText,
+                        timestamp: new Date().toISOString()
+                    });
+                });
+                
+                debugLog(`Sent chat message to ${Object.keys(peerConnections).length} peers`);
+            }
+            
+            // Add a chat message to the UI
+            function addChatMessage(senderId, message, isLocal = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isLocal ? 'local' : 'remote'}`;
+                
+                const senderDiv = document.createElement('div');
+                senderDiv.className = 'sender';
+                senderDiv.innerText = isLocal ? 'You' : `User ${senderId.substring(0, 4)}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'content';
+                contentDiv.innerText = message;
+                
+                const timestampDiv = document.createElement('div');
+                timestampDiv.className = 'timestamp';
+                const now = new Date();
+                timestampDiv.innerText = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+                messageDiv.appendChild(senderDiv);
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timestampDiv);
+                
+                chatMessages.appendChild(messageDiv);
+                
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Show chat notification if chat is hidden
+                if (chatContainer.classList.contains('hidden')) {
+                    toggleChatBtn.style.position = 'relative';
+                    
+                    // Check if notification already exists
+                    let notif = toggleChatBtn.querySelector('.chat-notification');
+                    if (!notif) {
+                        notif = document.createElement('span');
+                        notif.className = 'chat-notification';
+                        notif.style.position = 'absolute';
+                        notif.style.top = '-8px';
+                        notif.style.right = '-8px';
+                        notif.style.backgroundColor = '#ea4335';
+                        notif.style.color = 'white';
+                        notif.style.borderRadius = '50%';
+                        notif.style.width = '18px';
+                        notif.style.height = '18px';
+                        notif.style.fontSize = '12px';
+                        notif.style.display = 'flex';
+                        notif.style.alignItems = 'center';
+                        notif.style.justifyContent = 'center';
+                        notif.textContent = '1';
+                        toggleChatBtn.appendChild(notif);
+                    } else {
+                        // Increment notification count
+                        const count = parseInt(notif.textContent) + 1;
+                        notif.textContent = count > 99 ? '99+' : count;
+                    }
+                }
+            }
+            
+            // Handle a chat message from another peer
+            function handleChatMessage(senderId, signal) {
+                debugLog(`Received chat message from ${senderId}`);
+                addChatMessage(senderId, signal.message);
+            }
+            
+            // Poll for new connections and signals (in a real app, would use WebSockets)
             function pollForConnections() {
                 // This is a simplified polling mechanism for demo purposes
                 // In a real app, you would use WebSockets for real-time signaling
                 
+                // Poll for room status (participants)
                 setInterval(async () => {
                     try {
                         const response = await fetch(`/api/room-status/${roomId}`, {
@@ -981,6 +1650,7 @@
                         // Connect to new peers
                         data.users.forEach(peerId => {
                             if (peerId !== userId && !peerConnections[peerId]) {
+                                debugLog(`Discovered new peer: ${peerId}. Initiating call.`);
                                 initiateCall(peerId);
                             }
                         });
@@ -994,7 +1664,41 @@
                     } catch (error) {
                         debugLog('Error polling for connections:', error);
                     }
-                }, 5000); // Poll every 5 seconds
+                }, 3000); // Poll every 3 seconds
+                
+                // Poll for WebRTC signaling data
+                setInterval(async () => {
+                    if (!userId) return; // Not connected yet
+                    
+                    try {
+                        const response = await fetch('/api/get-signals', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                roomId,
+                                userId
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success && data.signals && data.signals.length > 0) {
+                            debugLog(`Received ${data.signals.length} new signals`);
+                            
+                            // Process each signal
+                            data.signals.forEach(item => {
+                                const senderId = item.from;
+                                const signal = item.signal;
+                                debugLog(`Processing signal from ${senderId}, type: ${signal.type}`);
+                                handleReceivedSignal(senderId, signal);
+                            });
+                        }
+                    } catch (error) {
+                        debugLog('Error polling for signals:', error);
+                    }
+                }, 1000); // Poll for signals more frequently
             }
             
             // Leave the room

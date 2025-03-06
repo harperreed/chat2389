@@ -6,6 +6,8 @@ A simple peer-to-peer video chat application using WebRTC, Python, and vanilla J
 
 - Create and join video chat rooms
 - Real-time video and audio communication
+- Text chat with message notifications
+- Toggle self-view (hide/show your own video)
 - Device selection (camera and microphone)
 - Mute audio and pause video controls
 - Copy room ID to invite others
@@ -20,6 +22,8 @@ A simple peer-to-peer video chat application using WebRTC, Python, and vanilla J
 
 ## Installation
 
+### Local Setup
+
 1. Clone this repository
 2. Install the requirements:
 
@@ -27,7 +31,24 @@ A simple peer-to-peer video chat application using WebRTC, Python, and vanilla J
 pip install -r requirements.txt
 ```
 
+### Docker Setup
+
+1. Build and run using Docker Compose:
+
+```bash
+docker-compose up --build
+```
+
+2. Or, build and run using Docker directly:
+
+```bash
+docker build -t webrtc-video-chat .
+docker run -p 5000:5000 webrtc-video-chat
+```
+
 ## Usage
+
+### Running Locally
 
 1. Start the server:
 
@@ -37,11 +58,41 @@ python server.py
 
 2. Open your browser and navigate to `http://localhost:5000`
 
-3. Create a new room or join an existing room by entering its Room ID
+### Deploying to Fly.io
 
-4. Share the Room ID with others to invite them to your video chat
+1. Install the Fly CLI tool:
 
-5. Allow camera and microphone access when prompted
+```bash
+curl -L https://fly.io/install.sh | sh
+```
+
+2. Log in to your Fly.io account:
+
+```bash
+fly auth login
+```
+
+3. Deploy the application:
+
+```bash
+fly launch
+```
+
+4. For subsequent deployments:
+
+```bash
+fly deploy
+```
+
+## Room Usage
+
+1. Create a new room or join an existing room by entering its Room ID
+
+2. Share the Room ID with others to invite them to your video chat
+
+3. Use the controls to toggle audio/video, show/hide self-view, and open the chat
+
+4. Allow camera and microphone access when prompted
 
 ## Debug Logging
 
