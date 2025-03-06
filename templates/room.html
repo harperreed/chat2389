@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Video Chat Room</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .room-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        .room-id {
+            padding: 8px 12px;
+            background-color: #e9f0fe;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #4285f4;
+            margin-left: 8px;
+        }
+        .status {
+            color: #666;
+            font-size: 14px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .primary-btn {
+            background-color: #4285f4;
+            color: white;
+        }
+        .primary-btn:hover {
+            background-color: #3367d6;
+        }
+        .secondary-btn {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        .secondary-btn:hover {
+            background-color: #e2e2e2;
+        }
+        .danger-btn {
+            background-color: #ea4335;
+            color: white;
+        }
+        .danger-btn:hover {
+            background-color: #d33426;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .video-container {
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            aspect-ratio: 16 / 9;
+        }
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .video-container.local video {
+            transform: scaleX(-1); /* Mirror the local video */
+        }
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .video-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-size: 14px;
+            background-color: #222;
+        }
+        .hidden {
+            display: none;
+        }
+        .chat-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .chat-input-container {
+            display: flex;
+            border-top: 1px solid #ddd;
+            padding: 10px;
+        }
+        .chat-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .send-btn {
+            margin-left: 10px;
+            padding: 8px 15px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            max-width: 80%;
+        }
+        .message.local {
+            background-color: #e9f0fe;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .message.remote {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+        .message .sender {
+            font-weight: bold;
+            margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .message .content {
+            word-break: break-word;
+        }
+        #devices-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .dialog-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+        }
+        .dialog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .close-dialog {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .device-select {
+            margin-bottom: 15px;
+        }
+        .device-select label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .device-select select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .dialog-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="room-info">
+                <h1>Video Chat</h1>
+                <div class="room-id">
+                    Room ID: <span id="roomIdDisplay">{{ room_id }}</span>
+                    <button class="copy-btn" id="copyRoomIdBtn" title="Copy Room ID">📋</button>
+                </div>
+                <div class="status" id="connectionStatus">Connecting...</div>
+            </div>
+            <div class="controls">
+                <button id="toggleVideoBtn" class="secondary-btn">Pause Video</button>
+                <button id="toggleAudioBtn" class="secondary-btn">Mute Audio</button>
+                <button id="settingsBtn" class="secondary-btn">Settings</button>
+                <button id="leaveRoomBtn" class="danger-btn">Leave Room</button>
+            </div>
+        </div>
+        
+        <div class="video-grid" id="videoGrid">
+            <div class="video-container local" id="localVideoContainer">
+                <video id="localVideo" autoplay muted playsinline></video>
+                <div class="video-label">You</div>
+            </div>
+            <!-- Remote videos will be added here dynamically -->
+        </div>
+        
+        <div class="chat-container hidden" id="chatContainer">
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be added here dynamically -->
+            </div>
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type a message...">
+                <button class="send-btn primary-btn" id="sendMsgBtn">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Dialog -->
+    <div id="devices-dialog" class="hidden">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h2>Media Settings</h2>
+                <button class="close-dialog" id="closeDialogBtn" title="Close">&times;</button>
+            </div>
+            <div class="device-select">
+                <label for="videoDevices">Camera:</label>
+                <select id="videoDevices"></select>
+            </div>
+            <div class="device-select">
+                <label for="audioDevices">Microphone:</label>
+                <select id="audioDevices"></select>
+            </div>
+            <div class="dialog-footer">
+                <button id="cancelSettingsBtn" class="secondary-btn">Cancel</button>
+                <button id="applySettingsBtn" class="primary-btn">Apply Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging
+        const DEBUG = true;
+        function debugLog(...args) {
+            if (DEBUG) {
+                console.log('[WebRTC]', ...args);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Room variables
+            const roomId = '{{ room_id }}';
+            let userId = null;
+            
+            // WebRTC variables
+            let localStream = null;
+            let peerConnections = {};
+            const mediaConstraints = {
+                audio: true,
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
+            };
+            const peerConfiguration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            };
+            
+            // DOM elements
+            const localVideo = document.getElementById('localVideo');
+            const videoGrid = document.getElementById('videoGrid');
+            const connectionStatus = document.getElementById('connectionStatus');
+            const copyRoomIdBtn = document.getElementById('copyRoomIdBtn');
+            const toggleVideoBtn = document.getElementById('toggleVideoBtn');
+            const toggleAudioBtn = document.getElementById('toggleAudioBtn');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+            const devicesDialog = document.getElementById('devices-dialog');
+            const closeDialogBtn = document.getElementById('closeDialogBtn');
+            const videoDevices = document.getElementById('videoDevices');
+            const audioDevices = document.getElementById('audioDevices');
+            const applySettingsBtn = document.getElementById('applySettingsBtn');
+            
+            // Initialize the room
+            async function initRoom() {
+                debugLog('Initializing room:', roomId);
+                
+                try {
+                    // Join the room to get a user ID
+                    const response = await fetch(`/api/join-room/${roomId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        userId = data.userId;
+                        debugLog(`Joined room as user: ${userId}`);
+                        connectionStatus.innerText = `Connected (${data.participants} participants)`;
+                        
+                        // Initialize WebRTC
+                        await setupLocalStream();
+                        
+                        // Set up event listeners
+                        setupEventListeners();
+                        
+                        // Poll for new connections (in a real app this would use WebSockets)
+                        pollForConnections();
+                    } else {
+                        debugLog('Failed to join room:', data.error);
+                        alert('Failed to join room: ' + data.error);
+                        window.location.href = '/';
+                    }
+                } catch (error) {
+                    debugLog('Error joining room:', error);
+                    alert('Error joining room. Please try again.');
+                    window.location.href = '/';
+                }
+            }
+            
+            // Set up the local media stream
+            async function setupLocalStream() {
+                try {
+                    debugLog('Setting up local media stream with constraints:', JSON.stringify(mediaConstraints));
+                    
+                    try {
+                        // Try to get both audio and video
+                        localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+                        debugLog('Successfully acquired audio and video streams');
+                    } catch (initialError) {
+                        debugLog('Error getting full media. Falling back to partial media:', initialError.name);
+                        
+                        // Try video-only if initial request fails
+                        try {
+                            localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                            debugLog('Successfully acquired video-only stream');
+                            alert('Could not access microphone. Continuing with video only.');
+                        } catch (videoError) {
+                            // Try audio-only as last resort
+                            try {
+                                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                                debugLog('Successfully acquired audio-only stream');
+                                alert('Could not access camera. Continuing with audio only.');
+                            } catch (audioError) {
+                                // No devices available or user denied all access
+                                debugLog('Failed to acquire any media streams');
+                                alert('Please allow camera or microphone access to use this app.');
+                                throw new Error('Media access denied');
+                            }
+                        }
+                    }
+                    
+                    // Display the stream
+                    localVideo.srcObject = localStream;
+                    
+                    // Log which tracks were acquired
+                    const videoTracks = localStream.getVideoTracks();
+                    const audioTracks = localStream.getAudioTracks();
+                    
+                    if (videoTracks.length > 0) {
+                        const videoSettings = videoTracks[0].getSettings();
+                        debugLog('Video track acquired:', videoTracks[0].label, 'Settings:', videoSettings);
+                    } else {
+                        debugLog('No video tracks available');
+                    }
+                    
+                    if (audioTracks.length > 0) {
+                        debugLog('Audio track acquired:', audioTracks[0].label);
+                    } else {
+                        debugLog('No audio tracks available');
+                    }
+                    
+                    debugLog('Local stream setup complete');
+                    
+                } catch (error) {
+                    debugLog('Error setting up local stream:', error);
+                    connectionStatus.innerText = 'Media error: ' + error.message;
+                    
+                    // Create a mock video element to show the error
+                    const videoContainer = document.getElementById('localVideoContainer');
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'video-placeholder';
+                    errorDiv.innerHTML = `<div>No media devices available.<br>Please check your camera and microphone.</div>`;
+                    
+                    // Replace the video with error message
+                    videoContainer.innerHTML = '';
+                    videoContainer.appendChild(errorDiv);
+                    
+                    throw error; // Rethrow for proper error handling upstream
+                }
+            }
+            
+            // Set up event listeners
+            function setupEventListeners() {
+                // Copy room ID button
+                copyRoomIdBtn.addEventListener('click', function() {
+                    const roomIdText = document.getElementById('roomIdDisplay').innerText;
+                    navigator.clipboard.writeText(roomIdText)
+                        .then(() => {
+                            debugLog('Room ID copied to clipboard');
+                            copyRoomIdBtn.innerText = '✓';
+                            setTimeout(() => {
+                                copyRoomIdBtn.innerText = '📋';
+                            }, 2000);
+                        })
+                        .catch(err => {
+                            debugLog('Error copying room ID:', err);
+                        });
+                });
+                
+                // Toggle video button
+                toggleVideoBtn.addEventListener('click', function() {
+                    if (localStream) {
+                        const videoTracks = localStream.getVideoTracks();
+                        if (videoTracks.length > 0) {
+                            const isEnabled = videoTracks[0].enabled;
+                            videoTracks[0].enabled = !isEnabled;
+                            toggleVideoBtn.innerText = isEnabled ? 'Resume Video' : 'Pause Video';
+                            debugLog(`Video ${isEnabled ? 'paused' : 'resumed'}`);
+                        }
+                    }
+                });
+                
+                // Toggle audio button
+                toggleAudioBtn.addEventListener('click', function() {
+                    if (localStream) {
+                        const audioTracks = localStream.getAudioTracks();
+                        if (audioTracks.length > 0) {
+                            const isEnabled = audioTracks[0].enabled;
+                            audioTracks[0].enabled = !isEnabled;
+                            toggleAudioBtn.innerText = isEnabled ? 'Unmute Audio' : 'Mute Audio';
+                            debugLog(`Audio ${isEnabled ? 'muted' : 'unmuted'}`);
+                        }
+                    }
+                });
+                
+                // Settings button
+                settingsBtn.addEventListener('click', async function() {
+                    debugLog('Opening settings dialog');
+                    try {
+                        await loadAvailableDevices();
+                        devicesDialog.classList.remove('hidden');
+                    } catch (error) {
+                        debugLog('Error loading devices:', error);
+                    }
+                });
+                
+                // Close dialog button
+                closeDialogBtn.addEventListener('click', function() {
+                    devicesDialog.classList.add('hidden');
+                });
+                
+                // Cancel button in settings dialog
+                const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+                cancelSettingsBtn.addEventListener('click', function() {
+                    debugLog('Settings canceled');
+                    devicesDialog.classList.add('hidden');
+                });
+                
+                // Apply settings button
+                applySettingsBtn.addEventListener('click', async function() {
+                    const videoDeviceId = videoDevices.value;
+                    const audioDeviceId = audioDevices.value;
+                    
+                    debugLog('Applying new device settings', { videoDeviceId, audioDeviceId });
+                    
+                    try {
+                        // Prepare constraints based on selected devices
+                        let newConstraints = {};
+                        
+                        // Handle video constraints
+                        if (videoDeviceId && videoDeviceId !== 'No camera found') {
+                            newConstraints.video = {
+                                deviceId: { exact: videoDeviceId },
+                                width: { ideal: 1280 },
+                                height: { ideal: 720 }
+                            };
+                        } else {
+                            // If no specific camera selected but video is desired
+                            newConstraints.video = true;
+                        }
+                        
+                        // Handle audio constraints
+                        if (audioDeviceId && audioDeviceId !== 'No microphone found') {
+                            newConstraints.audio = {
+                                deviceId: { exact: audioDeviceId }
+                            };
+                        } else {
+                            // If no specific microphone selected but audio is desired
+                            newConstraints.audio = true;
+                        }
+                        
+                        debugLog('New media constraints:', JSON.stringify(newConstraints));
+                        
+                        // Stop existing tracks
+                        if (localStream) {
+                            debugLog('Stopping existing tracks');
+                            localStream.getTracks().forEach(track => {
+                                debugLog(`Stopping ${track.kind} track`);
+                                track.stop();
+                            });
+                        }
+                        
+                        // Get new stream with selected devices
+                        debugLog('Requesting media with new constraints');
+                        localStream = await navigator.mediaDevices.getUserMedia(newConstraints);
+                        
+                        // Display the new stream
+                        localVideo.srcObject = localStream;
+                        debugLog('New media stream applied to video element');
+                        
+                        // Update all peer connections with the new stream
+                        // In a real app with multiple participants:
+                        const activePeers = Object.keys(peerConnections);
+                        if (activePeers.length > 0) {
+                            debugLog(`Updating media for ${activePeers.length} peer connections`);
+                            updatePeerConnections();
+                        }
+                        
+                        // Hide the dialog
+                        devicesDialog.classList.add('hidden');
+                        
+                        // Reset video/audio toggle buttons to match the new stream state
+                        toggleVideoBtn.innerText = 'Pause Video';
+                        toggleAudioBtn.innerText = 'Mute Audio';
+                        
+                        debugLog('Successfully applied new media settings');
+                    } catch (error) {
+                        debugLog('Error applying new settings:', error);
+                        alert('Error applying new settings: ' + error.message);
+                    }
+                });
+                
+                // Leave room button
+                leaveRoomBtn.addEventListener('click', async function() {
+                    if (confirm('Are you sure you want to leave this room?')) {
+                        await leaveRoom();
+                        window.location.href = '/';
+                    }
+                });
+                
+                // Handle page unload
+                window.addEventListener('beforeunload', function() {
+                    leaveRoom();
+                });
+            }
+            
+            // Load available media devices
+            async function loadAvailableDevices() {
+                try {
+                    debugLog('Starting device enumeration');
+                    
+                    // We need to request permissions first to get labeled devices
+                    if (!localStream) {
+                        debugLog('No existing stream, requesting temporary access to devices');
+                        try {
+                            const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+                            tempStream.getTracks().forEach(track => track.stop());
+                            debugLog('Temporary device access granted');
+                        } catch (err) {
+                            debugLog('Could not get temporary device access:', err);
+                            // Continue anyway, as we might still get device IDs without labels
+                        }
+                    }
+                    
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    debugLog('Devices enumerated:', devices.length);
+                    
+                    // Clear existing options
+                    videoDevices.innerHTML = '';
+                    audioDevices.innerHTML = '';
+                    
+                    // Add video devices
+                    const videoInputs = devices.filter(device => device.kind === 'videoinput');
+                    debugLog('Video input devices found:', videoInputs.length);
+                    
+                    if (videoInputs.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.text = 'No camera found';
+                        videoDevices.appendChild(option);
+                    } else {
+                        videoInputs.forEach((device, index) => {
+                            const option = document.createElement('option');
+                            option.value = device.deviceId;
+                            option.text = device.label || `Camera ${index + 1}`;
+                            videoDevices.appendChild(option);
+                            debugLog('Added video device:', device.deviceId, option.text);
+                        });
+                    }
+                    
+                    // Add audio devices
+                    const audioInputs = devices.filter(device => device.kind === 'audioinput');
+                    debugLog('Audio input devices found:', audioInputs.length);
+                    
+                    if (audioInputs.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.text = 'No microphone found';
+                        audioDevices.appendChild(option);
+                    } else {
+                        audioInputs.forEach((device, index) => {
+                            const option = document.createElement('option');
+                            option.value = device.deviceId;
+                            option.text = device.label || `Microphone ${index + 1}`;
+                            audioDevices.appendChild(option);
+                            debugLog('Added audio device:', device.deviceId, option.text);
+                        });
+                    }
+                    
+                    // Set current devices as selected
+                    if (localStream) {
+                        const currentVideoTrack = localStream.getVideoTracks()[0];
+                        const currentAudioTrack = localStream.getAudioTracks()[0];
+                        
+                        if (currentVideoTrack) {
+                            const videoDeviceId = currentVideoTrack.getSettings().deviceId;
+                            if (videoDeviceId) {
+                                debugLog('Current video device:', videoDeviceId);
+                                videoDevices.value = videoDeviceId;
+                            }
+                        }
+                        
+                        if (currentAudioTrack) {
+                            const audioDeviceId = currentAudioTrack.getSettings().deviceId;
+                            if (audioDeviceId) {
+                                debugLog('Current audio device:', audioDeviceId);
+                                audioDevices.value = audioDeviceId;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    debugLog('Error enumerating devices:', error);
+                    alert('Error loading media devices. ' + error.message);
+                }
+            }
+            
+            // Create a peer connection to another user
+            function createPeerConnection(peerId) {
+                debugLog(`Creating peer connection to: ${peerId}`);
+                
+                const peerConnection = new RTCPeerConnection(peerConfiguration);
+                peerConnections[peerId] = peerConnection;
+                
+                // Add local tracks to the peer connection
+                if (localStream) {
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+                }
+                
+                // ICE candidate event
+                peerConnection.onicecandidate = event => {
+                    if (event.candidate) {
+                        sendSignal(peerId, {
+                            type: 'ice-candidate',
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                // ICE connection state change
+                peerConnection.oniceconnectionstatechange = () => {
+                    debugLog(`ICE state change: ${peerConnection.iceConnectionState} for peer ${peerId}`);
+                };
+                
+                // Track event - when remote stream is received
+                peerConnection.ontrack = event => {
+                    debugLog(`Received remote track from peer ${peerId}`);
+                    const remoteStream = event.streams[0];
+                    addRemoteVideo(peerId, remoteStream);
+                };
+                
+                return peerConnection;
+            }
+            
+            // Add a remote video to the grid
+            function addRemoteVideo(peerId, stream) {
+                // Check if video already exists
+                const existingContainer = document.getElementById(`remote-${peerId}`);
+                if (existingContainer) {
+                    const existingVideo = existingContainer.querySelector('video');
+                    if (existingVideo.srcObject !== stream) {
+                        existingVideo.srcObject = stream;
+                    }
+                    return;
+                }
+                
+                // Create a new video container
+                const videoContainer = document.createElement('div');
+                videoContainer.id = `remote-${peerId}`;
+                videoContainer.className = 'video-container';
+                
+                const video = document.createElement('video');
+                video.autoplay = true;
+                video.playsInline = true;
+                video.srcObject = stream;
+                
+                const label = document.createElement('div');
+                label.className = 'video-label';
+                label.innerText = `User ${peerId.substring(0, 4)}`;
+                
+                videoContainer.appendChild(video);
+                videoContainer.appendChild(label);
+                videoGrid.appendChild(videoContainer);
+                
+                debugLog(`Added remote video for peer ${peerId}`);
+            }
+            
+            // Remove a remote video from the grid
+            function removeRemoteVideo(peerId) {
+                const videoContainer = document.getElementById(`remote-${peerId}`);
+                if (videoContainer) {
+                    videoGrid.removeChild(videoContainer);
+                    debugLog(`Removed remote video for peer ${peerId}`);
+                }
+            }
+            
+            // Send a signal to another peer via the server
+            async function sendSignal(targetId, signal) {
+                try {
+                    await fetch('/api/signal', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            roomId,
+                            userId,
+                            targetId,
+                            signal
+                        })
+                    });
+                    debugLog(`Signal sent to ${targetId}:`, signal.type);
+                } catch (error) {
+                    debugLog('Error sending signal:', error);
+                }
+            }
+            
+            // Handle received signal from another peer
+            function handleReceivedSignal(senderId, signal) {
+                debugLog(`Received signal from ${senderId}:`, signal.type);
+                
+                // Get or create peer connection
+                let peerConnection = peerConnections[senderId];
+                if (!peerConnection) {
+                    peerConnection = createPeerConnection(senderId);
+                }
+                
+                switch (signal.type) {
+                    case 'offer':
+                        handleOffer(peerConnection, senderId, signal);
+                        break;
+                    case 'answer':
+                        handleAnswer(peerConnection, signal);
+                        break;
+                    case 'ice-candidate':
+                        handleIceCandidate(peerConnection, signal);
+                        break;
+                    case 'disconnect':
+                        handleDisconnect(senderId);
+                        break;
+                    default:
+                        debugLog('Unknown signal type:', signal.type);
+                }
+            }
+            
+            // Handle an offer
+            async function handleOffer(peerConnection, senderId, signal) {
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    
+                    sendSignal(senderId, {
+                        type: 'answer',
+                        answer
+                    });
+                } catch (error) {
+                    debugLog('Error handling offer:', error);
+                }
+            }
+            
+            // Handle an answer
+            async function handleAnswer(peerConnection, signal) {
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(signal.answer));
+                } catch (error) {
+                    debugLog('Error handling answer:', error);
+                }
+            }
+            
+            // Handle an ICE candidate
+            async function handleIceCandidate(peerConnection, signal) {
+                try {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                } catch (error) {
+                    debugLog('Error handling ICE candidate:', error);
+                }
+            }
+            
+            // Handle a disconnect signal
+            function handleDisconnect(senderId) {
+                if (peerConnections[senderId]) {
+                    peerConnections[senderId].close();
+                    delete peerConnections[senderId];
+                }
+                
+                removeRemoteVideo(senderId);
+                debugLog(`Peer ${senderId} disconnected`);
+            }
+            
+            // Update all peer connections with the new media stream
+            function updatePeerConnections() {
+                if (!localStream) {
+                    debugLog('No local stream to update peer connections with');
+                    return;
+                }
+                
+                Object.keys(peerConnections).forEach(async (peerId) => {
+                    const peerConnection = peerConnections[peerId];
+                    
+                    try {
+                        // Get all senders (outgoing tracks) for this peer connection
+                        const senders = peerConnection.getSenders();
+                        
+                        // Replace each track with the corresponding track from the new stream
+                        const videoTrack = localStream.getVideoTracks()[0];
+                        const audioTrack = localStream.getAudioTracks()[0];
+                        
+                        if (videoTrack) {
+                            const videoSender = senders.find(sender => 
+                                sender.track && sender.track.kind === 'video');
+                            
+                            if (videoSender) {
+                                debugLog(`Replacing video track for peer ${peerId}`);
+                                await videoSender.replaceTrack(videoTrack);
+                            } else {
+                                debugLog(`Adding new video track for peer ${peerId}`);
+                                peerConnection.addTrack(videoTrack, localStream);
+                            }
+                        }
+                        
+                        if (audioTrack) {
+                            const audioSender = senders.find(sender => 
+                                sender.track && sender.track.kind === 'audio');
+                            
+                            if (audioSender) {
+                                debugLog(`Replacing audio track for peer ${peerId}`);
+                                await audioSender.replaceTrack(audioTrack);
+                            } else {
+                                debugLog(`Adding new audio track for peer ${peerId}`);
+                                peerConnection.addTrack(audioTrack, localStream);
+                            }
+                        }
+                        
+                        debugLog(`Updated media tracks for peer ${peerId}`);
+                    } catch (error) {
+                        debugLog(`Error updating tracks for peer ${peerId}:`, error);
+                    }
+                });
+            }
+            
+            // Initiate a call to another peer
+            async function initiateCall(peerId) {
+                debugLog(`Initiating call to peer: ${peerId}`);
+                
+                // Get or create peer connection
+                let peerConnection = peerConnections[peerId];
+                if (!peerConnection) {
+                    peerConnection = createPeerConnection(peerId);
+                }
+                
+                try {
+                    const offer = await peerConnection.createOffer({
+                        offerToReceiveAudio: true,
+                        offerToReceiveVideo: true
+                    });
+                    await peerConnection.setLocalDescription(offer);
+                    
+                    sendSignal(peerId, {
+                        type: 'offer',
+                        offer
+                    });
+                } catch (error) {
+                    debugLog('Error initiating call:', error);
+                }
+            }
+            
+            // Poll for new connections (in a real app, would use WebSockets)
+            function pollForConnections() {
+                // This is a simplified polling mechanism for demo purposes
+                // In a real app, you would use WebSockets for real-time signaling
+                
+                setInterval(async () => {
+                    try {
+                        const response = await fetch(`/api/room-status/${roomId}`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        // Update UI with participant count
+                        connectionStatus.innerText = `Connected (${data.participants} participants)`;
+                        
+                        // Connect to new peers
+                        data.users.forEach(peerId => {
+                            if (peerId !== userId && !peerConnections[peerId]) {
+                                initiateCall(peerId);
+                            }
+                        });
+                        
+                        // Check for disconnected peers
+                        Object.keys(peerConnections).forEach(peerId => {
+                            if (!data.users.includes(peerId)) {
+                                handleDisconnect(peerId);
+                            }
+                        });
+                    } catch (error) {
+                        debugLog('Error polling for connections:', error);
+                    }
+                }, 5000); // Poll every 5 seconds
+            }
+            
+            // Leave the room
+            async function leaveRoom() {
+                debugLog('Leaving room');
+                
+                // Close all peer connections
+                Object.values(peerConnections).forEach(connection => {
+                    connection.close();
+                });
+                peerConnections = {};
+                
+                // Stop local stream
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                
+                // Notify the server
+                try {
+                    await fetch('/api/leave-room', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            roomId,
+                            userId
+                        })
+                    });
+                    debugLog('Successfully left room');
+                } catch (error) {
+                    debugLog('Error leaving room:', error);
+                }
+            }
+            
+            // Initialize the room
+            initRoom();
+        });
+    </script>
+</body>
+</html>
