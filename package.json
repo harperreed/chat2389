@@ -1,0 +1,24 @@
+{
+  "name": "webrtc-video-chat",
+  "version": "1.0.0",
+  "description": "WebRTC Video Chat Application",
+  "source": [
+    "src/html/index.html",
+    "src/html/room.html"
+  ],
+  "scripts": {
+    "start": "parcel serve src/html/*.html --dist-dir public",
+    "build": "parcel build src/html/*.html --dist-dir public",
+    "clean": "rm -rf public/* .parcel-cache",
+    "test": "echo 'Running basic checks...' && npm run test:validate",
+    "test:validate": "find src -type f -name '*.js' -exec echo 'Checking {}...' \\; -exec node -c {} \\;"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "parcel": "^2.9.3"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}

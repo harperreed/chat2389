@@ -1,0 +1,255 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+}
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.room-info {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+.room-id {
+    padding: 8px 12px;
+    background-color: #e9f0fe;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+.copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #4285f4;
+    margin-left: 8px;
+}
+.status {
+    color: #666;
+    font-size: 14px;
+}
+.controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+.primary-btn {
+    background-color: #4285f4;
+    color: white;
+}
+.primary-btn:hover {
+    background-color: #3367d6;
+}
+.secondary-btn {
+    background-color: #f1f1f1;
+    color: #333;
+}
+.secondary-btn:hover {
+    background-color: #e2e2e2;
+}
+.danger-btn {
+    background-color: #ea4335;
+    color: white;
+}
+.danger-btn:hover {
+    background-color: #d33426;
+}
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+.video-container {
+    background-color: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 16 / 9;
+}
+.video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.video-container.local video {
+    transform: scaleX(-1); /* Mirror the local video */
+}
+.video-container.local.hidden {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    /* Using position:absolute and zero size instead of display:none 
+       to ensure the video keeps capturing even when hidden */
+}
+.video-label {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+.video-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    font-size: 14px;
+    background-color: #222;
+}
+.hidden {
+    display: none !important;
+}
+.chat-container {
+    margin-top: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    position: relative;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+}
+.chat-messages::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+.chat-input-container {
+    display: flex;
+    border-top: 1px solid #ddd;
+    padding: 10px;
+}
+.chat-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.send-btn {
+    margin-left: 10px;
+    padding: 8px 15px;
+}
+.message {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 18px;
+    max-width: 80%;
+    position: relative;
+    clear: both;
+    font-size: 14px;
+}
+.message.local {
+    background-color: #dcf8c6;
+    float: right;
+    border-top-right-radius: 0;
+}
+.message.remote {
+    background-color: #f1f1f1;
+    float: left;
+    border-top-left-radius: 0;
+}
+.message .sender {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #666;
+}
+.message .content {
+    word-break: break-word;
+}
+.message .timestamp {
+    font-size: 10px;
+    color: #999;
+    margin-top: 4px;
+    text-align: right;
+}
+#devices-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.dialog-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+}
+.dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.close-dialog {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+.device-select {
+    margin-bottom: 15px;
+}
+.device-select label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.device-select select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
 import logging
 import sys
@@ -15,7 +15,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='public', template_folder='public')
 
 # Enable Flask debug logging
 app.logger.setLevel(logging.DEBUG)
@@ -26,7 +26,7 @@ active_rooms = {}
 @app.route('/')
 def index():
     logger.debug("Serving index page")
-    return render_template('index.html')
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/api/create-room', methods=['POST'])
 def create_room():
@@ -193,7 +193,31 @@ def room(room_id):
         return "Room not found", 404
     
     logger.debug(f"Serving room page for room: {room_id}")
-    return render_template('room.html', room_id=room_id)
+    
+    # Use Flask's render_template_string to inject the room_id before sending
+    from flask import render_template_string
+    
+    try:
+        with open(os.path.join(app.static_folder, 'room.html'), 'r') as f:
+            template_content = f.read()
+            return render_template_string(template_content, room_id=room_id)
+    except Exception as e:
+        logger.error(f"Error reading room template: {e}")
+        return "Error loading room template", 500
+
+# Health check endpoint
+@app.route('/health')
+def health_check():
+    """Health check endpoint for monitoring."""
+    return jsonify({
+        'status': 'healthy',
+        'active_rooms': len(active_rooms)
+    })
+
+# Serve static assets from the public directory
+@app.route('/<path:filename>')
+def serve_static(filename):
+    return send_from_directory(app.static_folder, filename)
 
 if __name__ == '__main__':
     # Use environment variables for host and port if available
