@@ -1,50 +1,119 @@
-# Welcome to your Expo app 👋
+# WebRTC Video Chat - Expo Web Version
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is an Expo-based implementation of the WebRTC Video Chat application, using React Native and UI Kitten for the user interface.
 
-## Get started
+## Features
 
-1. Install dependencies
+- Real-time video/audio communication using WebRTC
+- Text chat via WebRTC data channels
+- Screen sharing capabilities
+- Device selection (camera, microphone, speakers)
+- Multiple backend options (Firebase, PocketBase, Flask, Mock)
+- Responsive design that works on web and mobile
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or later)
+- npm or yarn
+- Expo CLI
+
+### Installation
+
+1. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+### Configuration
 
-   ```bash
-    npx expo start
-   ```
+1. Firebase Configuration:
+   - Edit `api/config.ts` with your Firebase project credentials
 
-In the output, you'll find options to open the app in a
+### Running the App
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+For web development:
 ```bash
-npm run reset-project
+npm run web
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+For iOS:
+```bash
+npm run ios
+```
 
-## Learn more
+For Android:
+```bash
+npm run android
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Project Structure
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- `app/` - Main screens using Expo Router
+  - `index.tsx` - Home screen (create/join room)
+  - `room/[id].tsx` - Video chat room screen
+- `components/` - UI components
+  - `VideoContainer.tsx` - Video display component
+  - `VideoGrid.tsx` - Grid layout for videos
+  - `ChatInterface.tsx` - Chat UI component
+  - `MediaControls.tsx` - Controls for audio/video
+  - `DeviceSettings.tsx` - Device selection modal
+- `services/` - Core functionality
+  - `webrtc.ts` - WebRTC adapter
+  - `media.ts` - Media device management
+  - `chat.ts` - Chat data channel
+  - `signaling.ts` - Signaling service
+- `api/` - Backend API clients
+  - `ApiInterface.ts` - Common interface
+  - `FirebaseApiClient.ts` - Firebase implementation
+  - `MockApiClient.ts` - Mock implementation
+  - `ApiProvider.ts` - API provider/selector
+- `theme/` - UI Kitten theme configuration
 
-## Join the community
+## Architecture
 
-Join our community of developers creating universal apps.
+The application follows a modular architecture:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. **Services Layer** - Core WebRTC functionality:
+   - WebRTC connection management
+   - Media device access and control
+   - Signaling protocol
+   - Data channel communication
+
+2. **API Layer** - Backend communication:
+   - Room creation/joining
+   - Signaling message exchange
+   - Provider selection
+
+3. **UI Layer** - User interface components:
+   - Video display and layout
+   - Chat interface
+   - Media controls
+   - Settings and modals
+
+## Backend Options
+
+The app supports multiple backend options through the `ApiProvider`:
+
+1. **Mock** - In-memory implementation for testing
+2. **Firebase** - Uses Firebase Realtime Database
+3. **PocketBase** - Uses PocketBase backend (implementation pending)
+4. **Flask** - Uses Flask Python backend (implementation pending)
+
+## Notes on WebRTC in Expo
+
+While this implementation works well for web, the WebRTC integration for native platforms (iOS/Android) requires additional configuration:
+
+- For full native support, consider using `react-native-webrtc`
+- The current implementation uses WebView for video display on native platforms
+- Some features may have limited functionality on native platforms
+
+## Expo Resources
+
+To learn more about developing with Expo:
+
+- [Expo documentation](https://docs.expo.dev/)
+- [Expo Router](https://docs.expo.dev/router/introduction/)
+- [UI Kitten documentation](https://akveo.github.io/react-native-ui-kitten/)
