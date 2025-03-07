@@ -193,10 +193,22 @@ export default class MockApiClient extends ApiInterface {
    * @returns {Promise<{success: boolean, roomId: string, userId: string, participants: number, error: string}>}
    */
   async joinRoom(roomId, options = {}) {
+    // Validate parameters first - this should throw errors as required by the tests
+    if (!roomId) {
+      throw new Error('Room ID is required');
+    }
+    
+    if (typeof roomId !== 'string') {
+      throw new Error('Room ID must be a string');
+    }
+    
+    if (roomId.trim() === '') {
+      throw new Error('Room ID cannot be empty');
+    }
+    
     try {
       await this._delay();
       this._simulateRandomFailures();
-      this._validateRoomId(roomId);
       
       if (!this.rooms[roomId]) {
         return {
@@ -242,11 +254,34 @@ export default class MockApiClient extends ApiInterface {
    * @returns {Promise<{success: boolean, error: string}>}
    */
   async leaveRoom(roomId, userId) {
+    // Validate parameters first - this should throw errors as required by the tests
+    if (!roomId) {
+      throw new Error('Room ID is required');
+    }
+    
+    if (typeof roomId !== 'string') {
+      throw new Error('Room ID must be a string');
+    }
+    
+    if (roomId.trim() === '') {
+      throw new Error('Room ID cannot be empty');
+    }
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (typeof userId !== 'string') {
+      throw new Error('User ID must be a string');
+    }
+    
+    if (userId.trim() === '') {
+      throw new Error('User ID cannot be empty');
+    }
+    
     try {
       await this._delay();
       this._simulateRandomFailures();
-      this._validateRoomId(roomId);
-      this._validateUserId(userId);
       
       if (!this.rooms[roomId]) {
         return {
@@ -309,10 +344,22 @@ export default class MockApiClient extends ApiInterface {
    * @returns {Promise<{success: boolean, roomId: string, participants: number, users: string[], error: string}>}
    */
   async getRoomStatus(roomId) {
+    // Validate parameters first - this should throw errors as required by the tests
+    if (!roomId) {
+      throw new Error('Room ID is required');
+    }
+    
+    if (typeof roomId !== 'string') {
+      throw new Error('Room ID must be a string');
+    }
+    
+    if (roomId.trim() === '') {
+      throw new Error('Room ID cannot be empty');
+    }
+    
     try {
       await this._delay();
       this._simulateRandomFailures();
-      this._validateRoomId(roomId);
       
       if (!this.rooms[roomId]) {
         return {
@@ -361,13 +408,58 @@ export default class MockApiClient extends ApiInterface {
    * @returns {Promise<{success: boolean, error: string}>}
    */
   async sendSignal(roomId, userId, targetId, signal) {
+    // Validate parameters first - this should throw errors as required by the tests
+    if (!roomId) {
+      throw new Error('Room ID is required');
+    }
+    
+    if (typeof roomId !== 'string') {
+      throw new Error('Room ID must be a string');
+    }
+    
+    if (roomId.trim() === '') {
+      throw new Error('Room ID cannot be empty');
+    }
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (typeof userId !== 'string') {
+      throw new Error('User ID must be a string');
+    }
+    
+    if (userId.trim() === '') {
+      throw new Error('User ID cannot be empty');
+    }
+    
+    if (!targetId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (typeof targetId !== 'string') {
+      throw new Error('User ID must be a string');
+    }
+    
+    if (targetId.trim() === '') {
+      throw new Error('User ID cannot be empty');
+    }
+    
+    if (!signal) {
+      throw new Error('Signal data is required');
+    }
+    
+    if (typeof signal !== 'object') {
+      throw new Error('Signal data must be an object');
+    }
+    
+    if (!signal.type) {
+      throw new Error('Signal must have a type');
+    }
+    
     try {
       await this._delay();
       this._simulateRandomFailures();
-      this._validateRoomId(roomId);
-      this._validateUserId(userId);
-      this._validateUserId(targetId);
-      this._validateSignal(signal);
       
       if (!this.rooms[roomId]) {
         return {
@@ -446,11 +538,34 @@ export default class MockApiClient extends ApiInterface {
    * @returns {Promise<{success: boolean, signals: Array<{from: string, signal: object, timestamp: string}>, error: string}>}
    */
   async getSignals(roomId, userId, options = {}) {
+    // Validate parameters first - this should throw errors as required by the tests
+    if (!roomId) {
+      throw new Error('Room ID is required');
+    }
+    
+    if (typeof roomId !== 'string') {
+      throw new Error('Room ID must be a string');
+    }
+    
+    if (roomId.trim() === '') {
+      throw new Error('Room ID cannot be empty');
+    }
+    
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    if (typeof userId !== 'string') {
+      throw new Error('User ID must be a string');
+    }
+    
+    if (userId.trim() === '') {
+      throw new Error('User ID cannot be empty');
+    }
+    
     try {
       await this._delay();
       this._simulateRandomFailures();
-      this._validateRoomId(roomId);
-      this._validateUserId(userId);
       
       if (!this.rooms[roomId]) {
         return {
