@@ -171,7 +171,7 @@ const STORAGE_KEY = 'webrtc_chat_api_config';
  */
 function detectEnvironment() {
   // Check for explicit environment setting
-  if (window.ENV && window.ENV.ENVIRONMENT) {
+  if (window.ENV?.ENVIRONMENT) {
     return window.ENV.ENVIRONMENT;
   }
   
@@ -260,7 +260,7 @@ export function loadConfig() {
   }
   
   // Apply window.ENV settings (highest priority except URL params)
-  if (window.ENV && window.ENV.API_CONFIG) {
+  if (window.ENV?.API_CONFIG) {
     config = { ...config, ...window.ENV.API_CONFIG };
   }
   
@@ -277,29 +277,29 @@ export function loadConfig() {
   }
   
   if (urlParams.has('api-timeout')) {
-    const timeout = parseInt(urlParams.get('api-timeout'), 10);
-    if (!isNaN(timeout)) {
+    const timeout = Number.parseInt(urlParams.get('api-timeout'), 10);
+    if (!Number.isNaN(timeout)) {
       config.defaultTimeout = timeout;
     }
   }
   
   if (urlParams.has('api-retries')) {
-    const retries = parseInt(urlParams.get('api-retries'), 10);
-    if (!isNaN(retries)) {
+    const retries = Number.parseInt(urlParams.get('api-retries'), 10);
+    if (!Number.isNaN(retries)) {
       config.maxRetries = retries;
     }
   }
   
   if (urlParams.has('mock-delay')) {
-    const delay = parseInt(urlParams.get('mock-delay'), 10);
-    if (!isNaN(delay)) {
+    const delay = Number.parseInt(urlParams.get('mock-delay'), 10);
+    if (!Number.isNaN(delay)) {
       config.mockDelay = delay;
     }
   }
   
   if (urlParams.has('mock-fail')) {
-    const rate = parseFloat(urlParams.get('mock-fail'));
-    if (!isNaN(rate)) {
+    const rate = Number.parseFloat(urlParams.get('mock-fail'));
+    if (!Number.isNaN(rate)) {
       config.mockFailRate = Math.max(0, Math.min(1, rate));
     }
   }

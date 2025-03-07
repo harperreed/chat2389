@@ -317,7 +317,7 @@ export default class MockApiClient extends ApiInterface {
           
           // Schedule actual deletion after a delay
           setTimeout(() => {
-            if (this.rooms[roomId] && this.rooms[roomId].closed) {
+            if (this.rooms[roomId]?.closed) {
               delete this.rooms[roomId];
               this._log(`Room ${roomId} deleted (empty)`);
             }
@@ -580,11 +580,11 @@ export default class MockApiClient extends ApiInterface {
         if (typeof options.since === 'number') {
           minEventId = options.since;
         } else if (/^\d+$/.test(options.since)) {
-          minEventId = parseInt(options.since, 10);
+          minEventId = Number.parseInt(options.since, 10);
         } else {
           // Try to parse as ISO timestamp and find nearest event
           const timestamp = new Date(options.since).getTime();
-          if (!isNaN(timestamp)) {
+          if (!Number.isNaN(timestamp)) {
             // Find events that occurred after this timestamp
             // For simplicity, we just set minEventId to eventCounter - 100
             // A real implementation would be more sophisticated
@@ -605,7 +605,7 @@ export default class MockApiClient extends ApiInterface {
       const signals = [];
       let maxEventId = minEventId;
       
-      this.rooms[roomId].signals.forEach(signal => {
+      for (const signal of this.rooms[roomId].signals) {
         if (signal.to === userId && !signal.processed && signal.eventId > minEventId) {
           signals.push({
             id: signal.id,
@@ -619,7 +619,7 @@ export default class MockApiClient extends ApiInterface {
           // Track highest event ID for cursor-based pagination
           maxEventId = Math.max(maxEventId, signal.eventId);
         }
-      });
+      }
       
       // Clean up old processed signals
       if (this.rooms[roomId].signals.length > 1000) {

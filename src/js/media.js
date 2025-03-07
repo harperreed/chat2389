@@ -39,8 +39,9 @@ export default class MediaManager {
      */
     async requestUserMedia(constraints = null) {
         try {
-            if (!constraints) {
-                constraints = {
+            let mediaConstraints = constraints;
+            if (!mediaConstraints) {
+                mediaConstraints = {
                     audio: this.selectedDevices.audioinput ? { deviceId: { exact: this.selectedDevices.audioinput } } : true,
                     video: this.selectedDevices.videoinput ? { deviceId: { exact: this.selectedDevices.videoinput } } : true
                 };
@@ -49,7 +50,7 @@ export default class MediaManager {
             // Try to get both video and audio
             try {
                 console.debug('Requesting camera and microphone access...');
-                this.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                this.mediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
                 this.videoEnabled = true;
                 this.audioEnabled = true;
                 return this.mediaStream;
@@ -59,7 +60,7 @@ export default class MediaManager {
                 // If that fails, try video only
                 try {
                     this.mediaStream = await navigator.mediaDevices.getUserMedia({
-                        video: constraints.video,
+                        video: mediaConstraints.video,
                         audio: false
                     });
                     this.videoEnabled = true;
@@ -71,7 +72,7 @@ export default class MediaManager {
                     // If that fails, try audio only
                     this.mediaStream = await navigator.mediaDevices.getUserMedia({
                         video: false,
-                        audio: constraints.audio
+                        audio: mediaConstraints.audio
                     });
                     this.videoEnabled = false;
                     this.audioEnabled = true;
@@ -101,14 +102,14 @@ export default class MediaManager {
             };
             
             // Populate device lists
-            devices.forEach(device => {
+            for (const device of devices) {
                 if (this.devices[device.kind]) {
                     this.devices[device.kind].push({
                         id: device.deviceId,
                         label: device.label || `${device.kind} ${this.devices[device.kind].length + 1}`
                     });
                 }
-            });
+            }
             
             // Set default devices if none selected
             if (!this.selectedDevices.videoinput && this.devices.videoinput.length > 0) {
@@ -141,9 +142,9 @@ export default class MediaManager {
         
         this.videoEnabled = !this.videoEnabled;
         
-        videoTracks.forEach(track => {
+        for (const track of videoTracks) {
             track.enabled = this.videoEnabled;
-        });
+        }
         
         return this.videoEnabled;
     }
@@ -159,9 +160,9 @@ export default class MediaManager {
         
         this.audioEnabled = !this.audioEnabled;
         
-        audioTracks.forEach(track => {
+        for (const track of audioTracks) {
             track.enabled = this.audioEnabled;
-        });
+        }
         
         return this.audioEnabled;
     }
@@ -185,7 +186,9 @@ export default class MediaManager {
         
         // Stop current tracks
         if (this.mediaStream) {
-            this.mediaStream.getTracks().forEach(track => track.stop());
+            for (const track of this.mediaStream.getTracks()) {
+                track.stop();
+            }
         }
         
         // Create constraints from selected devices
@@ -200,13 +203,13 @@ export default class MediaManager {
         // Set sink ID for audio output if supported
         if (this.selectedDevices.audiooutput && typeof HTMLMediaElement.prototype.setSinkId === 'function') {
             // Apply to any audio elements that need it
-            document.querySelectorAll('audio, video').forEach(el => {
+            for (const el of document.querySelectorAll('audio, video')) {
                 try {
                     el.setSinkId(this.selectedDevices.audiooutput);
                 } catch (error) {
                     console.warn('Error setting audio output device:', error);
                 }
-            });
+            }
         }
         
         return this.mediaStream;
@@ -224,7 +227,9 @@ export default class MediaManager {
      */
     cleanup() {
         if (this.mediaStream) {
-            this.mediaStream.getTracks().forEach(track => track.stop());
+            for (const track of this.mediaStream.getTracks()) {
+                track.stop();
+            }
             this.mediaStream = null;
         }
     }

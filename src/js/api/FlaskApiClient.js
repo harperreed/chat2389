@@ -114,99 +114,105 @@ export default class FlaskApiClient extends ApiInterface {
     const requestId = `${method}:${endpoint}:${JSON.stringify(body || {})}`;
     
     // Return a promise that will resolve when the request completes
-    return new Promise(async (resolve, reject) => {
-      // Check if this exact request is already in flight
-      if (this._pendingRequests.has(requestId) && method === 'GET') {
-        this._log(`Request already in flight: ${requestId}`);
-        reject(new Error('Request already in flight'));
-        return;
-      }
-      
-      // Track this request
-      this._pendingRequests.add(requestId);
-      
-      // Try the request with retries
-      let lastError = null;
-      let attempt = 0;
-      
-      while (attempt <= retries) {
-        try {
-          // Create abort controller for timeout
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), timeout);
-          
-          // Combine with user-provided signal if any
-          const signal = options.signal
-            ? AbortSignal.any([options.signal, controller.signal])
-            : controller.signal;
-          
-          const fetchOptions = {
-            method,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            signal
-          };
-
-          if (body) {
-            fetchOptions.body = JSON.stringify(body);
-          }
-
-          // Make the request
-          this._log(`Request [${attempt}/${retries}]:`, method, endpoint);
-          const response = await fetch(`${this.baseUrl}${endpoint}`, fetchOptions);
-          clearTimeout(timeoutId);
-          
-          // Check for HTTP errors
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(`HTTP error ${response.status}: ${errorData.error || response.statusText}`);
-          }
-          
-          // Parse the response
-          const data = await response.json();
-          
-          // Remove from pending requests
-          this._pendingRequests.delete(requestId);
-          
-          // Return the data
-          resolve(data);
+    return new Promise((resolve, reject) => {
+      // Define the request execution function
+      const executeRequest = async () => {
+        // Check if this exact request is already in flight
+        if (this._pendingRequests.has(requestId) && method === 'GET') {
+          this._log(`Request already in flight: ${requestId}`);
+          reject(new Error('Request already in flight'));
           return;
-        } catch (error) {
-          lastError = error;
-          
-          // If this is an abort error, don't retry
-          if (error.name === 'AbortError') {
-            this._log(`Request aborted:`, method, endpoint);
-            break;
-          }
-          
-          // If we've reached the max retries, give up
-          if (attempt >= retries) {
-            this._log(`Max retries reached:`, method, endpoint);
-            break;
-          }
-          
-          // Otherwise, wait and retry
-          const delay = this.retryDelay * Math.pow(2, attempt);
-          this._log(`Retrying in ${delay}ms:`, method, endpoint);
-          await new Promise(r => setTimeout(r, delay));
-          attempt++;
         }
-      }
-      
-      // If we get here, all retries failed
-      this._pendingRequests.delete(requestId);
-      
-      // Create standardized error response
-      const errorResponse = {
-        success: false,
-        error: lastError ? lastError.message : 'Unknown error'
+        
+        // Track this request
+        this._pendingRequests.add(requestId);
+        
+        // Try the request with retries
+        let lastError = null;
+        let attempt = 0;
+        
+        while (attempt <= retries) {
+          try {
+            // Create abort controller for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            // Combine with user-provided signal if any
+            const signal = options.signal
+              ? AbortSignal.any([options.signal, controller.signal])
+              : controller.signal;
+            
+            const fetchOptions = {
+              method,
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              signal
+            };
+  
+            if (body) {
+              fetchOptions.body = JSON.stringify(body);
+            }
+  
+            // Make the request
+            this._log(`Request [${attempt}/${retries}]:`, method, endpoint);
+            const response = await fetch(`${this.baseUrl}${endpoint}`, fetchOptions);
+            clearTimeout(timeoutId);
+            
+            // Check for HTTP errors
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+              throw new Error(`HTTP error ${response.status}: ${errorData.error || response.statusText}`);
+            }
+            
+            // Parse the response
+            const data = await response.json();
+            
+            // Remove from pending requests
+            this._pendingRequests.delete(requestId);
+            
+            // Return the data
+            resolve(data);
+            return;
+          } catch (error) {
+            lastError = error;
+            
+            // If this is an abort error, don't retry
+            if (error.name === 'AbortError') {
+              this._log('Request aborted:', method, endpoint);
+              break;
+            }
+            
+            // If we've reached the max retries, give up
+            if (attempt >= retries) {
+              this._log('Max retries reached:', method, endpoint);
+              break;
+            }
+            
+            // Otherwise, wait and retry
+            const delay = this.retryDelay * (2 ** attempt);
+            this._log(`Retrying in ${delay}ms:`, method, endpoint);
+            await new Promise(r => setTimeout(r, delay));
+            attempt++;
+          }
+        }
+        
+        // If we get here, all retries failed
+        this._pendingRequests.delete(requestId);
+        
+        // Create standardized error response
+        const errorResponse = {
+          success: false,
+          error: lastError ? lastError.message : 'Unknown error'
+        };
+        
+        this._log('Request failed:', method, endpoint, errorResponse.error);
+        resolve(errorResponse); // Resolve with error data instead of rejecting
       };
       
-      this._log(`Request failed:`, method, endpoint, errorResponse.error);
-      resolve(errorResponse); // Resolve with error data instead of rejecting
+      // Start the request process
+      executeRequest().catch(reject);
     });
   }
 

@@ -98,7 +98,9 @@ export default class ChatManager {
         this.messages.push(message);
         
         // Trigger local message callbacks
-        this.onMessageCallbacks.forEach(callback => callback(message, true));
+        for (const callback of this.onMessageCallbacks) {
+            callback(message, true);
+        }
         
         // Broadcast to all peers
         for (const peerId in this.webrtcManager.peerConnections) {
@@ -118,7 +120,9 @@ export default class ChatManager {
         this.messages.push(message);
         
         // Trigger message callbacks
-        this.onMessageCallbacks.forEach(callback => callback(message, false));
+        for (const callback of this.onMessageCallbacks) {
+            callback(message, false);
+        }
     }
     
     /**

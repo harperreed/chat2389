@@ -73,7 +73,7 @@ export default class WebRTCManager {
         if (!currentStream) return;
         
         // Add or replace audio and video tracks
-        currentStream.getTracks().forEach(track => {
+        for (const track of currentStream.getTracks()) {
             const sender = senders.find(s => s.track && s.track.kind === track.kind);
             
             if (sender) {
@@ -85,7 +85,7 @@ export default class WebRTCManager {
                 pc.addTrack(track, currentStream);
                 console.debug(`Added ${track.kind} track for peer ${peerId}`);
             }
-        });
+        }
     }
     
     /**
@@ -104,16 +104,18 @@ export default class WebRTCManager {
         
         // Trigger new peer connection callbacks
         if (this.onNewPeerConnectionCallbacks.length > 0) {
-            this.onNewPeerConnectionCallbacks.forEach(callback => callback(peerId, pc));
+            for (const callback of this.onNewPeerConnectionCallbacks) {
+                callback(peerId, pc);
+            }
         }
         
         // Add local tracks if we have them
         const currentStream = this.isScreenSharing ? this.screenStream : this.localStream;
         if (currentStream) {
-            currentStream.getTracks().forEach(track => {
+            for (const track of currentStream.getTracks()) {
                 pc.addTrack(track, currentStream);
                 console.debug(`Added ${track.kind} track to new peer connection for ${peerId}`);
-            });
+            }
         }
         
         // Set up ICE candidate handling
@@ -137,7 +139,9 @@ export default class WebRTCManager {
                 this.removePeer(peerId);
                 
                 // Trigger disconnect callbacks
-                this.onDisconnectCallbacks.forEach(callback => callback(peerId));
+                for (const callback of this.onDisconnectCallbacks) {
+                    callback(peerId);
+                }
             }
         };
         
@@ -146,16 +150,17 @@ export default class WebRTCManager {
             console.debug(`Received remote track from ${peerId}`, event.track.kind);
             
             // Trigger all track callbacks
-            this.onTrackCallbacks.forEach(callback => 
-                callback(peerId, event.streams[0]));
+            for (const callback of this.onTrackCallbacks) {
+                callback(peerId, event.streams[0]);
+            }
         };
         
         // Add any pending ICE candidates
         if (this.pendingCandidates[peerId]) {
-            this.pendingCandidates[peerId].forEach(candidate => {
+            for (const candidate of this.pendingCandidates[peerId]) {
                 pc.addIceCandidate(new RTCIceCandidate(candidate));
                 console.debug(`Added pending ICE candidate for ${peerId}`);
-            });
+            }
             delete this.pendingCandidates[peerId];
         }
         
@@ -174,7 +179,9 @@ export default class WebRTCManager {
             await this.handleIceCandidate(peerId, signal);
         } else if (signal.type === 'disconnect') {
             this.removePeer(peerId);
-            this.onDisconnectCallbacks.forEach(callback => callback(peerId));
+            for (const callback of this.onDisconnectCallbacks) {
+                callback(peerId);
+            }
         }
     }
     
@@ -249,7 +256,9 @@ export default class WebRTCManager {
         if (this.isScreenSharing) {
             // Stop screen sharing
             if (this.screenStream) {
-                this.screenStream.getTracks().forEach(track => track.stop());
+                for (const track of this.screenStream.getTracks()) {
+                    track.stop();
+                }
                 this.screenStream = null;
             }
             
@@ -261,31 +270,31 @@ export default class WebRTCManager {
             }
             
             return { active: false };
-        } else {
-            // Start screen sharing
-            try {
-                this.screenStream = await navigator.mediaDevices.getDisplayMedia({
-                    video: true,
-                    audio: true
-                });
-                
-                this.isScreenSharing = true;
-                
-                // Update all peer connections to use screen stream
-                for (const peerId in this.peerConnections) {
-                    this.updatePeerTracks(peerId);
-                }
-                
-                // Setup a handler to detect when user stops sharing
-                this.screenStream.getVideoTracks()[0].onended = () => {
-                    this.toggleScreenSharing();
-                };
-                
-                return { active: true, stream: this.screenStream };
-            } catch (error) {
-                console.error('Error getting screen:', error);
-                return { active: false, error };
+        }
+        
+        // Start screen sharing
+        try {
+            this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: true
+            });
+            
+            this.isScreenSharing = true;
+            
+            // Update all peer connections to use screen stream
+            for (const peerId in this.peerConnections) {
+                this.updatePeerTracks(peerId);
             }
+            
+            // Setup a handler to detect when user stops sharing
+            this.screenStream.getVideoTracks()[0].onended = () => {
+                this.toggleScreenSharing();
+            };
+            
+            return { active: true, stream: this.screenStream };
+        } catch (error) {
+            console.error('Error getting screen:', error);
+            return { active: false, error };
         }
     }
     
@@ -337,11 +346,15 @@ export default class WebRTCManager {
         this.peerConnections = {};
         
         if (this.localStream) {
-            this.localStream.getTracks().forEach(track => track.stop());
+            for (const track of this.localStream.getTracks()) {
+                track.stop();
+            }
         }
         
         if (this.screenStream) {
-            this.screenStream.getTracks().forEach(track => track.stop());
+            for (const track of this.screenStream.getTracks()) {
+                track.stop();
+            }
         }
     }
 }

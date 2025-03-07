@@ -7,7 +7,7 @@ import BackendSelector from './api/BackendSelector.js';
 import ApiProvider from './api/ApiProvider.js';
 import { loadConfig } from './api/config.js';
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async () => {
     // Get room ID from the template or URL
     let roomId;
     const roomIdElement = document.getElementById('roomIdText');
@@ -103,11 +103,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             if (statusResult.success) {
                 // Connect to all other users in the room
-                statusResult.users.forEach(userId => {
+                for (const userId of statusResult.users) {
                     if (userId !== joinResult.userId) {
                         webrtcManager.createOffer(userId);
                     }
-                });
+                }
             }
             
             // Set up periodic status updates
@@ -239,28 +239,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         audioOutputSelect.innerHTML = '';
         
         // Add audio input devices
-        devices.audioinput.forEach(device => {
+        for (const device of devices.audioinput) {
             const option = document.createElement('option');
             option.value = device.id;
             option.text = device.label;
             audioInputSelect.add(option);
-        });
+        }
         
         // Add video input devices
-        devices.videoinput.forEach(device => {
+        for (const device of devices.videoinput) {
             const option = document.createElement('option');
             option.value = device.id;
             option.text = device.label;
             videoInputSelect.add(option);
-        });
+        }
         
         // Add audio output devices
-        devices.audiooutput.forEach(device => {
+        for (const device of devices.audiooutput) {
             const option = document.createElement('option');
             option.value = device.id;
             option.text = device.label;
             audioOutputSelect.add(option);
-        });
+        }
         
         // Set selected values based on current selections
         if (mediaManager.selectedDevices.audioinput) {

@@ -36,13 +36,13 @@ export default class SignalingManager {
                     userId: data.userId,
                     participants: data.participants
                 };
-            } else {
-                console.error('Failed to join room:', data.error);
-                return {
-                    success: false,
-                    error: data.error
-                };
             }
+            
+            console.error('Failed to join room:', data.error);
+            return {
+                success: false,
+                error: data.error
+            };
         } catch (error) {
             console.error('Error joining room:', error);
             return {
@@ -64,13 +64,13 @@ export default class SignalingManager {
             
             if (data.success) {
                 return { success: true };
-            } else {
-                console.error('Failed to leave room:', data.error);
-                return {
-                    success: false,
-                    error: data.error
-                };
             }
+            
+            console.error('Failed to leave room:', data.error);
+            return {
+                success: false,
+                error: data.error
+            };
         } catch (error) {
             console.error('Error leaving room:', error);
             return {
@@ -89,7 +89,9 @@ export default class SignalingManager {
             
             if (data.success) {
                 // Trigger room status callbacks
-                this.onRoomStatusCallbacks.forEach(callback => callback(data));
+                for (const callback of this.onRoomStatusCallbacks) {
+                    callback(data);
+                }
                 
                 return {
                     success: true,
@@ -97,13 +99,13 @@ export default class SignalingManager {
                     participants: data.participants,
                     users: data.users
                 };
-            } else {
-                console.error('Failed to get room status:', data.error);
-                return {
-                    success: false,
-                    error: data.error
-                };
             }
+            
+            console.error('Failed to get room status:', data.error);
+            return {
+                success: false,
+                error: data.error
+            };
         } catch (error) {
             console.error('Error getting room status:', error);
             return {
@@ -145,19 +147,20 @@ export default class SignalingManager {
                 // Process incoming signals
                 const signals = data.signals || [];
                 
-                signals.forEach(signal => {
-                    this.onSignalCallbacks.forEach(callback => 
-                        callback(signal.from, signal.signal));
-                });
+                for (const signal of signals) {
+                    for (const callback of this.onSignalCallbacks) {
+                        callback(signal.from, signal.signal);
+                    }
+                }
                 
                 return { success: true, signals };
-            } else {
-                console.error('Failed to get signals:', data.error);
-                return {
-                    success: false,
-                    error: data.error
-                };
             }
+            
+            console.error('Failed to get signals:', data.error);
+            return {
+                success: false,
+                error: data.error
+            };
         } catch (error) {
             console.error('Error polling signals:', error);
             return {
@@ -181,13 +184,13 @@ export default class SignalingManager {
             
             if (data.success) {
                 return { success: true };
-            } else {
-                console.error('Failed to send signal:', data.error);
-                return {
-                    success: false,
-                    error: data.error
-                };
             }
+            
+            console.error('Failed to send signal:', data.error);
+            return {
+                success: false,
+                error: data.error
+            };
         } catch (error) {
             console.error('Error sending signal:', error);
             return {

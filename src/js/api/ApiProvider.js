@@ -149,7 +149,9 @@ class ApiClientStore {
     // If still not found, check instance types
     if (client instanceof FlaskApiClient) {
       return BACKENDS.FLASK;
-    } else if (client instanceof MockApiClient) {
+    }
+    
+    if (client instanceof MockApiClient) {
       return BACKENDS.MOCK;
     }
     
@@ -210,96 +212,110 @@ class ApiClientStore {
 const clientStore = new ApiClientStore();
 
 /**
- * ApiProvider provides access to API client instances.
- * It manages creating, caching, and accessing API clients 
+ * ApiProvider functions provide access to API client instances.
+ * They manage creating, caching, and accessing API clients 
  * of different types (Flask, Mock, etc.)
  */
-export default class ApiProvider {
-  /**
-   * Get the API client instance
-   * @param {string} [type] - Backend type (from BACKENDS object)
-   * @param {object} [options] - Options for the API client
-   * @returns {ApiInterface} API client instance
-   * @throws {Error} If the backend type is unknown
-   */
-  static getClient(type = null, options = {}) {
-    try {
-      // If no type provided, load from config
-      if (!type) {
-        const config = loadConfig();
-        type = config.type;
-        options = { ...config, ...options };
-      }
-      
-      // Get/create client from store
-      return clientStore.getClient(type, options);
-    } catch (error) {
-      console.error('Error creating API client:', error);
-      
-      // Fall back to Flask if there's an error
-      if (type !== BACKENDS.FLASK) {
-        console.warn(`Falling back to ${BACKENDS.FLASK} API client`);
-        return clientStore.getClient(BACKENDS.FLASK, options);
-      }
-      
-      throw error;
-    }
-  }
 
-  /**
-   * Reset a specific API client instance
-   * @param {string} [type] - Backend type to reset, or all if not specified
-   */
-  static resetClient(type = null) {
-    if (type) {
-      clientStore.clearClient(type);
-    } else {
-      clientStore.clearAllClients();
-    }
-  }
-  
-  /**
-   * Get the current backend type of a client
-   * @param {ApiInterface} [client] - Client instance to check, or current client if not specified
-   * @returns {string} Current backend type
-   */
-  static getClientType(client = null) {
-    if (client) {
-      return clientStore.getClientType(client);
+/**
+ * Get the API client instance
+ * @param {string} [type] - Backend type (from BACKENDS object)
+ * @param {object} [options] - Options for the API client
+ * @returns {ApiInterface} API client instance
+ * @throws {Error} If the backend type is unknown
+ */
+export function getClient(type = null, options = {}) {
+  try {
+    // If no type provided, load from config
+    let clientType = type;
+    let clientOptions = options;
+    
+    if (!clientType) {
+      const config = loadConfig();
+      clientType = config.type;
+      clientOptions = { ...config, ...options };
     }
     
-    // If client isn't specified, return the type from the API interface
-    const apiClient = ApiProvider.getClient();
-    return apiClient.getBackendType();
-  }
-  
-  /**
-   * Enable debug mode for the API provider
-   * @param {boolean} [enabled=true] - Whether to enable debugging
-   */
-  static enableDebug(enabled = true) {
-    clientStore.setDebug(enabled);
-  }
-  
-  /**
-   * Add an event listener for API events
-   * @param {string} event - Event name (connectionLost, connectionRestored)
-   * @param {Function} callback - Callback function
-   * @returns {string} Listener ID for removal
-   */
-  static addEventListener(event, callback) {
-    return clientStore.addListener(event, callback);
-  }
-  
-  /**
-   * Remove an event listener
-   * @param {string} listenerId - ID returned from addEventListener
-   * @returns {boolean} True if listener was removed
-   */
-  static removeEventListener(listenerId) {
-    return clientStore.removeListener(listenerId);
+    // Get/create client from store
+    return clientStore.getClient(clientType, clientOptions);
+  } catch (error) {
+    console.error('Error creating API client:', error);
+    
+    // Fall back to Flask if there's an error
+    if (clientType !== BACKENDS.FLASK) {
+      console.warn(`Falling back to ${BACKENDS.FLASK} API client`);
+      return clientStore.getClient(BACKENDS.FLASK, clientOptions);
+    }
+    
+    throw error;
   }
 }
+
+/**
+ * Reset a specific API client instance
+ * @param {string} [type] - Backend type to reset, or all if not specified
+ */
+export function resetClient(type = null) {
+  if (type) {
+    clientStore.clearClient(type);
+  } else {
+    clientStore.clearAllClients();
+  }
+}
+
+/**
+ * Get the current backend type of a client
+ * @param {ApiInterface} [client] - Client instance to check, or current client if not specified
+ * @returns {string} Current backend type
+ */
+export function getClientType(client = null) {
+  if (client) {
+    return clientStore.getClientType(client);
+  }
+  
+  // If client isn't specified, return the type from the API interface
+  const apiClient = getClient();
+  return apiClient.getBackendType();
+}
+
+/**
+ * Enable debug mode for the API provider
+ * @param {boolean} [enabled=true] - Whether to enable debugging
+ */
+export function enableDebug(enabled = true) {
+  clientStore.setDebug(enabled);
+}
+
+/**
+ * Add an event listener for API events
+ * @param {string} event - Event name (connectionLost, connectionRestored)
+ * @param {Function} callback - Callback function
+ * @returns {string} Listener ID for removal
+ */
+export function addEventListener(event, callback) {
+  return clientStore.addListener(event, callback);
+}
+
+/**
+ * Remove an event listener
+ * @param {string} listenerId - ID returned from addEventListener
+ * @returns {boolean} True if listener was removed
+ */
+export function removeEventListener(listenerId) {
+  return clientStore.removeListener(listenerId);
+}
+
+// Create a default export for backwards compatibility
+const ApiProvider = {
+  getClient,
+  resetClient,
+  getClientType,
+  enableDebug,
+  addEventListener,
+  removeEventListener
+};
+
+export default ApiProvider;
 
 /**
  * Determine the API client type based on configuration

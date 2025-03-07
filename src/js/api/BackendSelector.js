@@ -460,7 +460,7 @@ export default class BackendSelector {
       if (input.type === 'checkbox') {
         return input.checked;
       } else if (input.type === 'number' || input.type === 'range') {
-        return parseFloat(input.value);
+        return Number.parseFloat(input.value);
       } else {
         return input.value;
       }

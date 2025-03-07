@@ -3,7 +3,7 @@ import ApiProvider from './api/ApiProvider.js';
 import BackendSelector from './api/BackendSelector.js';
 import { loadConfig } from './api/config.js';
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
     const createRoomBtn = document.getElementById('createRoomBtn');
     const joinRoomBtn = document.getElementById('joinRoomBtn');
     const roomIdInput = document.getElementById('roomIdInput');
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Create a new room with error handling and retry
-    createRoomBtn.addEventListener('click', async function() {
+    createRoomBtn.addEventListener('click', async () => {
         if (uiState.isCreatingRoom) return; // Prevent double-clicks
         
         console.debug('Creating new room...');
@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = `/room/${roomId}`;
             } else {
                 console.error('Failed to create room:', data.error);
-                alert('Failed to create room: ' + data.error);
+                alert(`Failed to create room: ${data.error}`);
                 createRoomBtn.disabled = false;
                 createRoomBtn.textContent = 'Create New Room';
                 uiState.isCreatingRoom = false;
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Join an existing room with validation and error handling
-    joinRoomBtn.addEventListener('click', async function() {
+    joinRoomBtn.addEventListener('click', async () => {
         if (uiState.isJoiningRoom) return; // Prevent double-clicks
         
         const roomId = roomIdInput.value.trim();
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = `/room/${roomId}`;
             } else {
                 console.error('Failed to join room:', data.error);
-                alert('Failed to join room: ' + data.error);
+                alert(`Failed to join room: ${data.error}`);
                 joinRoomBtn.disabled = false;
                 joinRoomBtn.textContent = 'Join Room';
                 uiState.isJoiningRoom = false;
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Allow pressing Enter to join a room
-    roomIdInput.addEventListener('keypress', function(e) {
+    roomIdInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             joinRoomBtn.click();
         }
