@@ -440,6 +440,69 @@ export default class BackendSelector {
     
     specificSection.appendChild(pocketbaseOptions);
     
+    // Firebase backend specific options
+    const firebaseOptions = document.createElement('div');
+    firebaseOptions.className = 'backend-specific-options firebase';
+    firebaseOptions.style.display = this.config.type === BACKENDS.FIREBASE ? 'block' : 'none';
+    
+    firebaseOptions.appendChild(createOption(
+      'enableHealthCheck',
+      'Enable Health Checks',
+      'checkbox',
+      this.config.enableHealthCheck
+    ));
+    
+    const firebaseTitle = document.createElement('div');
+    firebaseTitle.textContent = 'Firebase Configuration';
+    firebaseTitle.style.fontWeight = 'bold';
+    firebaseTitle.style.marginTop = '10px';
+    firebaseTitle.style.marginBottom = '8px';
+    firebaseOptions.appendChild(firebaseTitle);
+    
+    firebaseOptions.appendChild(createOption(
+      'apiKey',
+      'API Key',
+      'text',
+      this.config.apiKey || ''
+    ));
+    
+    firebaseOptions.appendChild(createOption(
+      'authDomain',
+      'Auth Domain',
+      'text',
+      this.config.authDomain || ''
+    ));
+    
+    firebaseOptions.appendChild(createOption(
+      'projectId',
+      'Project ID',
+      'text',
+      this.config.projectId || ''
+    ));
+    
+    firebaseOptions.appendChild(createOption(
+      'storageBucket',
+      'Storage Bucket',
+      'text',
+      this.config.storageBucket || ''
+    ));
+    
+    firebaseOptions.appendChild(createOption(
+      'messagingSenderId',
+      'Messaging Sender ID',
+      'text',
+      this.config.messagingSenderId || ''
+    ));
+    
+    firebaseOptions.appendChild(createOption(
+      'appId',
+      'App ID',
+      'text',
+      this.config.appId || ''
+    ));
+    
+    specificSection.appendChild(firebaseOptions);
+    
     container.appendChild(specificSection);
     
     // Add listener for backend type changes to show/hide specific options

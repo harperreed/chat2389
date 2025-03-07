@@ -1,6 +1,7 @@
 import FlaskApiClient from './FlaskApiClient.js';
 import MockApiClient from './MockApiClient.js';
 import PocketBaseApiClient from './PocketBaseApiClient.js';
+import FirebaseApiClient from './FirebaseApiClient.js';
 import { BACKENDS, loadConfig } from './config.js';
 
 /**
@@ -67,6 +68,21 @@ class ApiClientStore {
         break;
       case BACKENDS.POCKETBASE:
         client = new PocketBaseApiClient(options.baseUrl || '', {
+          defaultTimeout: options.defaultTimeout,
+          maxRetries: options.maxRetries,
+          debug: options.debug,
+          enableHealthCheck: options.enableHealthCheck
+        });
+        break;
+      case BACKENDS.FIREBASE:
+        client = new FirebaseApiClient(options.firebaseConfig || {
+          apiKey: options.apiKey,
+          authDomain: options.authDomain,
+          projectId: options.projectId,
+          storageBucket: options.storageBucket,
+          messagingSenderId: options.messagingSenderId,
+          appId: options.appId
+        }, {
           defaultTimeout: options.defaultTimeout,
           maxRetries: options.maxRetries,
           debug: options.debug,
@@ -162,6 +178,10 @@ class ApiClientStore {
     
     if (client instanceof PocketBaseApiClient) {
       return BACKENDS.POCKETBASE;
+    }
+    
+    if (client instanceof FirebaseApiClient) {
+      return BACKENDS.FIREBASE;
     }
     
     if (client instanceof MockApiClient) {

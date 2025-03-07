@@ -29,6 +29,11 @@ export const BACKENDS = {
    */
   POCKETBASE: 'pocketbase',
   
+  /**
+   * Firebase Firestore backend
+   */
+  FIREBASE: 'firebase',
+  
   // Add new backend types here as they're implemented
   // NODE: 'node',  // Example for future Node.js backend
   // JAVA: 'java',  // Example for future Java backend
