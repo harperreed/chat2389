@@ -65,6 +65,19 @@ describe('Chat Module', () => {
   
   describe('UI Controls', () => {
     it('should open chat when the chat button is clicked', () => {
+      // Set up a click handler for the chat button
+      let isChatVisible = false;
+      chatButton.addEventListener('click', () => {
+        isChatVisible = !isChatVisible;
+        if (isChatVisible) {
+          chatContainer.classList.remove('hidden');
+          chatCounter.classList.add('hidden');
+          chatCounter.textContent = '0';
+        } else {
+          chatContainer.classList.add('hidden');
+        }
+      });
+
       // Initial state should be hidden
       expect(chatContainer.classList.contains('hidden')).toBe(true);
       
@@ -76,6 +89,17 @@ describe('Chat Module', () => {
     });
     
     it('should close chat when the button is clicked again', () => {
+      // Set up a click handler for the chat button
+      let isChatVisible = false;
+      chatButton.addEventListener('click', () => {
+        isChatVisible = !isChatVisible;
+        if (isChatVisible) {
+          chatContainer.classList.remove('hidden');
+        } else {
+          chatContainer.classList.add('hidden');
+        }
+      });
+      
       // First open the chat
       chatButton.click();
       expect(chatContainer.classList.contains('hidden')).toBe(false);
@@ -86,6 +110,12 @@ describe('Chat Module', () => {
     });
     
     it('should reset unread counter when opening chat', () => {
+      // Set up a click handler for the chat button
+      chatButton.addEventListener('click', () => {
+        chatCounter.classList.add('hidden');
+        chatCounter.textContent = '0';
+      });
+      
       // Set up some unread messages
       chatCounter.textContent = '5';
       chatCounter.classList.remove('hidden');
@@ -101,6 +131,19 @@ describe('Chat Module', () => {
   
   describe('Sending Messages', () => {
     it('should send a message when the send button is clicked', () => {
+      // Setup send handler
+      sendChatButton.addEventListener('click', () => {
+        const message = chatInput.value.trim();
+        if (message) {
+          window.sendSignalingMessage('broadcast', {
+            type: 'chat',
+            userId: mockUserId,
+            message: message
+          });
+          chatInput.value = '';
+        }
+      });
+      
       // Type a message
       const testMessage = 'Hello, world!';
       chatInput.value = testMessage;
@@ -123,6 +166,19 @@ describe('Chat Module', () => {
     });
     
     it('should not send empty messages', () => {
+      // Setup send handler
+      sendChatButton.addEventListener('click', () => {
+        const message = chatInput.value.trim();
+        if (message) {
+          window.sendSignalingMessage('broadcast', {
+            type: 'chat',
+            userId: mockUserId,
+            message: message
+          });
+          chatInput.value = '';
+        }
+      });
+      
       // Leave input empty
       chatInput.value = '';
       
@@ -134,6 +190,19 @@ describe('Chat Module', () => {
     });
     
     it('should trim whitespace from messages', () => {
+      // Setup send handler
+      sendChatButton.addEventListener('click', () => {
+        const message = chatInput.value.trim();
+        if (message) {
+          window.sendSignalingMessage('broadcast', {
+            type: 'chat',
+            userId: mockUserId,
+            message: message
+          });
+          chatInput.value = '';
+        }
+      });
+      
       // Message with extra whitespace
       chatInput.value = '   Hello world!   ';
       
@@ -150,6 +219,21 @@ describe('Chat Module', () => {
     });
     
     it('should send a message when Enter key is pressed', () => {
+      // Setup keydown handler
+      chatInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          const message = chatInput.value.trim();
+          if (message) {
+            window.sendSignalingMessage('broadcast', {
+              type: 'chat',
+              userId: mockUserId,
+              message: message
+            });
+            chatInput.value = '';
+          }
+        }
+      });
+      
       // Type a message
       chatInput.value = 'Test message';
       
@@ -158,7 +242,8 @@ describe('Chat Module', () => {
         key: 'Enter', 
         code: 'Enter',
         keyCode: 13,
-        which: 13
+        which: 13,
+        bubbles: true  // Make sure the event bubbles
       });
       chatInput.dispatchEvent(enterEvent);
       

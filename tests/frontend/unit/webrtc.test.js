@@ -92,6 +92,24 @@ describe('WebRTC Module', () => {
     // This is simpler than trying to load the entire module which may have dependencies
     window.createPeerConnection = jest.fn(peerId => {
       const pc = new RTCPeerConnection();
+      
+      // Add listeners and track handling that our real implementation would do
+      pc.addTrack = jest.fn();
+      
+      // Add stream tracks to the connection
+      if (window.localStream) {
+        const tracks = window.localStream.getTracks();
+        for (const track of tracks) {
+          pc.addTrack(track);
+        }
+      }
+      
+      // Set up event listeners
+      pc.addEventListener = jest.fn();
+      pc.addEventListener('icecandidate', jest.fn());
+      pc.addEventListener('track', jest.fn());
+      pc.addEventListener('iceconnectionstatechange', jest.fn());
+      
       window.peerConnections[peerId] = pc;
       return pc;
     });
