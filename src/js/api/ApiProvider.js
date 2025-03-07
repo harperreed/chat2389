@@ -1,5 +1,6 @@
 import FlaskApiClient from './FlaskApiClient.js';
 import MockApiClient from './MockApiClient.js';
+import PocketBaseApiClient from './PocketBaseApiClient.js';
 import { BACKENDS, loadConfig } from './config.js';
 
 /**
@@ -60,6 +61,14 @@ class ApiClientStore {
           defaultTimeout: options.defaultTimeout,
           maxRetries: options.maxRetries,
           retryDelay: options.retryDelay,
+          debug: options.debug,
+          enableHealthCheck: options.enableHealthCheck
+        });
+        break;
+      case BACKENDS.POCKETBASE:
+        client = new PocketBaseApiClient(options.baseUrl || '', {
+          defaultTimeout: options.defaultTimeout,
+          maxRetries: options.maxRetries,
           debug: options.debug,
           enableHealthCheck: options.enableHealthCheck
         });
@@ -149,6 +158,10 @@ class ApiClientStore {
     // If still not found, check instance types
     if (client instanceof FlaskApiClient) {
       return BACKENDS.FLASK;
+    }
+    
+    if (client instanceof PocketBaseApiClient) {
+      return BACKENDS.POCKETBASE;
     }
     
     if (client instanceof MockApiClient) {

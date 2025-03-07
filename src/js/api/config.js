@@ -24,6 +24,11 @@ export const BACKENDS = {
    */
   MOCK: 'mock',
   
+  /**
+   * PocketBase backend
+   */
+  POCKETBASE: 'pocketbase',
+  
   // Add new backend types here as they're implemented
   // NODE: 'node',  // Example for future Node.js backend
   // JAVA: 'java',  // Example for future Java backend

@@ -419,6 +419,27 @@ export default class BackendSelector {
     
     specificSection.appendChild(flaskOptions);
     
+    // PocketBase backend specific options
+    const pocketbaseOptions = document.createElement('div');
+    pocketbaseOptions.className = 'backend-specific-options pocketbase';
+    pocketbaseOptions.style.display = this.config.type === BACKENDS.POCKETBASE ? 'block' : 'none';
+    
+    pocketbaseOptions.appendChild(createOption(
+      'enableHealthCheck',
+      'Enable Health Checks',
+      'checkbox',
+      this.config.enableHealthCheck
+    ));
+    
+    pocketbaseOptions.appendChild(createOption(
+      'baseUrl',
+      'PocketBase URL',
+      'text',
+      this.config.baseUrl || 'http://127.0.0.1:8090'
+    ));
+    
+    specificSection.appendChild(pocketbaseOptions);
+    
     container.appendChild(specificSection);
     
     // Add listener for backend type changes to show/hide specific options
