@@ -9,25 +9,36 @@ import {
   FirebaseOptions
 } from 'firebase/app';
 import {
-  getDatabase,
-  ref,
-  set,
-  push,
-  onValue,
-  get,
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signOut,
+  User
+} from 'firebase/auth';
+import {
+  getFirestore,
+  collection,
+  doc,
+  setDoc,
+  addDoc,
+  getDoc,
+  getDocs,
   query,
-  orderByChild,
-  startAt,
-  Database
-} from 'firebase/database';
-import { ApiInterface, RoomResponse, JoinRoomResponse } from './ApiInterface';
+  where,
+  orderBy,
+  Timestamp,
+  Firestore
+} from 'firebase/firestore';
+import { ApiInterface, RoomResponse, JoinRoomResponse, UserInfo } from './ApiInterface';
 import { SignalingMessage } from '../services/signaling';
 
 export class FirebaseApiClient implements ApiInterface {
   private app: FirebaseApp | null = null;
-  private db: Database | null = null;
+  private db: Firestore | null = null;
   private config: FirebaseOptions;
-  private listeners: any[] = [];
+  private user: User | null = null;
+  private authStateChangeListeners: ((user: User | null) => void)[] = [];
   
   constructor(config: FirebaseOptions) {
     this.config = config;
@@ -45,8 +56,19 @@ export class FirebaseApiClient implements ApiInterface {
         this.app = initializeApp(this.config);
       }
       
-      // Get database reference
-      this.db = getDatabase(this.app);
+      // Get Firestore reference
+      this.db = getFirestore(this.app);
+      
+      // Initialize authentication
+      const auth = getAuth(this.app);
+      this.user = auth.currentUser;
+      
+      // Set up auth state change listener
+      onAuthStateChanged(auth, (user) => {
+        this.user = user;
+        // Notify all listeners
+        this.authStateChangeListeners.forEach(listener => listener(user));
+      });
     } catch (error) {
       console.error('Error connecting to Firebase:', error);
       throw error;
@@ -57,11 +79,7 @@ export class FirebaseApiClient implements ApiInterface {
    * Disconnect from Firebase
    */
   public async disconnect(): Promise<void> {
-    // Clean up any listeners
-    this.listeners.forEach(listener => listener());
-    this.listeners = [];
-    
-    // Firebase doesn't have an explicit disconnect method
+    // Firestore doesn't require explicit cleanup for basic usage
     this.db = null;
   }
   
@@ -80,19 +98,20 @@ export class FirebaseApiClient implements ApiInterface {
       
       // Create timestamp
       const created = Date.now();
+      const createdTimestamp = Timestamp.fromMillis(created);
       
-      // Create room in Firebase
-      const roomRef = ref(this.db, `rooms/${roomId}`);
-      await set(roomRef, {
-        created,
+      // Create room in Firestore
+      const roomRef = doc(this.db, 'rooms', roomId);
+      await setDoc(roomRef, {
+        created: createdTimestamp,
         createdBy: userId,
         active: true
       });
       
       // Add user to room
-      const userRef = ref(this.db, `rooms/${roomId}/users/${userId}`);
-      await set(userRef, {
-        joined: created,
+      const userRef = doc(this.db, 'rooms', roomId, 'users', userId);
+      await setDoc(userRef, {
+        joined: createdTimestamp,
         active: true
       });
       
@@ -115,8 +134,8 @@ export class FirebaseApiClient implements ApiInterface {
     
     try {
       // Check if room exists
-      const roomRef = ref(this.db, `rooms/${roomId}`);
-      const roomSnapshot = await get(roomRef);
+      const roomRef = doc(this.db, 'rooms', roomId);
+      const roomSnapshot = await getDoc(roomRef);
       
       if (!roomSnapshot.exists()) {
         throw new Error(`Room ${roomId} does not exist`);
@@ -127,11 +146,12 @@ export class FirebaseApiClient implements ApiInterface {
       
       // Create timestamp
       const joined = Date.now();
+      const joinedTimestamp = Timestamp.fromMillis(joined);
       
       // Add user to room
-      const userRef = ref(this.db, `rooms/${roomId}/users/${userId}`);
-      await set(userRef, {
-        joined,
+      const userRef = doc(this.db, 'rooms', roomId, 'users', userId);
+      await setDoc(userRef, {
+        joined: joinedTimestamp,
         active: true
       });
       
@@ -153,11 +173,11 @@ export class FirebaseApiClient implements ApiInterface {
     
     try {
       // Mark user as inactive
-      const userRef = ref(this.db, `rooms/${roomId}/users/${userId}`);
-      await set(userRef, {
+      const userRef = doc(this.db, 'rooms', roomId, 'users', userId);
+      await setDoc(userRef, {
         active: false,
-        left: Date.now()
-      });
+        left: Timestamp.fromMillis(Date.now())
+      }, { merge: true });
     } catch (error) {
       console.error('Error leaving room:', error);
       throw error;
@@ -172,15 +192,18 @@ export class FirebaseApiClient implements ApiInterface {
     
     try {
       // Add timestamp to message
+      const timestamp = Date.now();
+      const firestoreTimestamp = Timestamp.fromMillis(timestamp);
+      
       const messageWithTimestamp = {
         ...message,
-        timestamp: Date.now()
+        timestamp: timestamp,
+        firestoreTimestamp: firestoreTimestamp
       };
       
-      // Add message to room's signals
-      const signalsRef = ref(this.db, `rooms/${roomId}/signals`);
-      const newSignalRef = push(signalsRef);
-      await set(newSignalRef, messageWithTimestamp);
+      // Add message to room's signals collection
+      const signalsCollectionRef = collection(this.db, 'rooms', roomId, 'signals');
+      await addDoc(signalsCollectionRef, messageWithTimestamp);
     } catch (error) {
       console.error('Error sending signal:', error);
       throw error;
@@ -195,22 +218,29 @@ export class FirebaseApiClient implements ApiInterface {
     
     try {
       // Query messages since the given timestamp
-      const signalsRef = ref(this.db, `rooms/${roomId}/signals`);
+      const sinceTimestamp = Timestamp.fromMillis(since);
+      const signalsCollectionRef = collection(this.db, 'rooms', roomId, 'signals');
       const signalsQuery = query(
-        signalsRef,
-        orderByChild('timestamp'),
-        startAt(since)
+        signalsCollectionRef,
+        where('firestoreTimestamp', '>', sinceTimestamp),
+        orderBy('firestoreTimestamp')
       );
       
       // Get signals
-      const snapshot = await get(signalsQuery);
+      const snapshot = await getDocs(signalsQuery);
       const signals: SignalingMessage[] = [];
       
-      if (snapshot.exists()) {
-        snapshot.forEach((childSnapshot) => {
-          signals.push(childSnapshot.val() as SignalingMessage);
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        signals.push({
+          type: data.type,
+          sender: data.sender,
+          receiver: data.receiver,
+          roomId: data.roomId,
+          data: data.data,
+          timestamp: data.timestamp
         });
-      }
+      });
       
       return signals;
     } catch (error) {
@@ -227,6 +257,95 @@ export class FirebaseApiClient implements ApiInterface {
   }
   
   /**
+   * Sign in with Google
+   */
+  public async signInWithGoogle(): Promise<UserInfo> {
+    if (!this.app) throw new Error('Not connected to Firebase');
+    
+    try {
+      const auth = getAuth(this.app);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      this.user = result.user;
+      
+      return {
+        uid: result.user.uid,
+        displayName: result.user.displayName,
+        email: result.user.email,
+        photoURL: result.user.photoURL
+      };
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Sign out
+   */
+  public async signOut(): Promise<void> {
+    if (!this.app) throw new Error('Not connected to Firebase');
+    
+    try {
+      const auth = getAuth(this.app);
+      await signOut(auth);
+      this.user = null;
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get current user
+   */
+  public getCurrentUser(): UserInfo | null {
+    if (!this.user) return null;
+    
+    return {
+      uid: this.user.uid,
+      displayName: this.user.displayName,
+      email: this.user.email,
+      photoURL: this.user.photoURL
+    };
+  }
+  
+  /**
+   * Check if user is signed in
+   */
+  public isSignedIn(): boolean {
+    return this.user !== null;
+  }
+  
+  /**
+   * Add auth state change listener
+   */
+  public onAuthStateChanged(listener: (user: UserInfo | null) => void): () => void {
+    if (!this.app) throw new Error('Not connected to Firebase');
+    
+    const wrappedListener = (user: User | null) => {
+      if (user) {
+        listener({
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL
+        });
+      } else {
+        listener(null);
+      }
+    };
+    
+    this.authStateChangeListeners.push(wrappedListener);
+    
+    const auth = getAuth(this.app);
+    return onAuthStateChanged(auth, (user) => {
+      this.user = user;
+      wrappedListener(user);
+    });
+  }
+  
+  /**
    * Generate a random room ID
    */
   private generateRoomId(): string {
@@ -240,10 +359,15 @@ export class FirebaseApiClient implements ApiInterface {
   }
   
   /**
-   * Generate a random user ID
+   * Generate a user ID
    */
   private generateUserId(): string {
-    // Generate a UUID-like string
+    // Use Firebase user ID if available, otherwise generate a random ID
+    if (this.user) {
+      return this.user.uid;
+    }
+    
+    // Generate a UUID-like string for anonymous users
     return 'user_' + Math.random().toString(36).substring(2, 15);
   }
 }

@@ -62,31 +62,50 @@ export default function RoomScreen() {
     
     const initializeRoom = async () => {
       try {
+        console.log('[Room] Starting room initialization');
+        
         // Get API provider
         const provider = ApiProvider.getInstance();
         const apiClient = provider.getApiClient();
+        
+        console.log('[Room] API provider type:', provider.getApiType());
         
         if (!apiClient) {
           throw new Error('API client not initialized');
         }
         
+        // Check auth status if using Firebase
+        if (apiClient.getProviderName() === 'Firebase' && apiClient.getCurrentUser) {
+          const user = apiClient.getCurrentUser();
+          console.log('[Room] Current user:', user ? `${user.displayName} (${user.uid})` : 'Not signed in');
+        }
+        
         // Initialize media
+        console.log('[Room] Initializing media');
         mediaManager.current = new MediaManager();
         const stream = await mediaManager.current.initialize({ video: true, audio: true });
         setLocalStream(stream);
+        console.log('[Room] Media initialized, got stream:', stream ? 'yes' : 'no');
         
         // Get device lists
+        console.log('[Room] Enumerating devices');
         const devices = await mediaManager.current.enumerateDevices();
         setAudioInputDevices(mediaManager.current.getAudioInputDevices());
         setVideoInputDevices(mediaManager.current.getVideoInputDevices());
         setAudioOutputDevices(mediaManager.current.getAudioOutputDevices());
+        console.log('[Room] Found devices:', 
+          'audio:', mediaManager.current.getAudioInputDevices().length,
+          'video:', mediaManager.current.getVideoInputDevices().length);
         
         // Initialize WebRTC
+        console.log('[Room] Initializing WebRTC');
         webrtcManager.current = new WebRTCManager();
         await webrtcManager.current.initialize(stream);
+        console.log('[Room] WebRTC initialized');
         
         // Setup WebRTC callbacks for handling remote streams
         webrtcManager.current.setOnTrack((stream, peerId) => {
+          console.log('[Room] Received remote stream from peer:', peerId);
           setRemoteStreams(prev => {
             const newStreams = new Map(prev);
             newStreams.set(peerId, stream);
@@ -95,18 +114,23 @@ export default function RoomScreen() {
         });
         
         // Initialize signaling
+        console.log('[Room] Initializing signaling service');
         signalingService.current = new SignalingService(apiClient);
         
         // Join room
+        console.log('[Room] Joining room:', roomId);
         const newUserId = await signalingService.current.joinRoom(roomId as string);
         setUserId(newUserId);
+        console.log('[Room] Joined room with user ID:', newUserId);
         
         // Initialize chat manager
+        console.log('[Room] Initializing chat manager');
         chatManager.current = new ChatManager(newUserId, webrtcManager.current);
         chatManager.current.initialize(true); // Initialize as initiator
         
         // Setup chat message handler
         chatManager.current.onMessage(message => {
+          console.log('[Room] Received chat message from:', message.sender);
           setChatMessages(prev => [...prev, message]);
         });
         
@@ -114,11 +138,13 @@ export default function RoomScreen() {
         setConnected(true);
         
         // Setup signaling handlers
+        console.log('[Room] Setting up signaling handlers');
         setupSignalingHandlers();
+        console.log('[Room] Room initialization complete');
         
       } catch (error) {
-        console.error('Error initializing room:', error);
-        setError('Failed to join the room. Please try again.');
+        console.error('[Room] Error initializing room:', error);
+        setError(`Failed to join the room: ${error.message || 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -353,19 +379,15 @@ export default function RoomScreen() {
 
   return (
     <Layout style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: `Room: ${roomId}`,
-          headerRight: () => (
-            <Button
-              size="small"
-              appearance="ghost"
-              accessoryLeft={renderCopyIcon}
-              onPress={copyRoomId}
-            />
-          ),
-        }}
-      />
+      <View style={styles.headerContainer}>
+        <Text category="h6">Room: {roomId}</Text>
+        <Button
+          size="small"
+          appearance="ghost"
+          accessoryLeft={renderCopyIcon}
+          onPress={copyRoomId}
+        />
+      </View>
       
       <View style={styles.gridContainer}>
         <VideoGrid
@@ -410,6 +432,7 @@ export default function RoomScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 40, // Add safe area padding for status bar
   },
   loadingContainer: {
     flex: 1,
@@ -436,7 +459,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 10,
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
   },
   roomIdContainer: {
     flexDirection: 'row',

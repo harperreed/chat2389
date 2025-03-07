@@ -16,13 +16,13 @@ interface ApiConfig {
 
 export const config: ApiConfig = {
   firebase: {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    databaseURL: "YOUR_DATABASE_URL"
+    apiKey: "AIzaSyBVr_e1ilB3WDU9URma2uLsrg8x9eVTpBg",
+    authDomain: "project-2432689628870799174.firebaseapp.com",
+    projectId: "project-2432689628870799174",
+    storageBucket: "project-2432689628870799174.firebasestorage.app",
+    messagingSenderId: "617829744766",
+    appId: "1:617829744766:web:579afbabd8a619bd18d82f",
+    measurementId: "G-GWY7LFQ64B"
   },
   pocketbase: {
     baseUrl: "http://localhost:8090"

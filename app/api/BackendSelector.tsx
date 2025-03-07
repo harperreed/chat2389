@@ -12,8 +12,14 @@ interface BackendSelectorProps {
   initialType?: ApiType;
 }
 
-export const BackendSelector: React.FC<BackendSelectorProps> = ({ onSelect, initialType = 'mock' }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+export const BackendSelector: React.FC<BackendSelectorProps> = ({ onSelect, initialType = 'firebase' }) => {
+  // Set initial selected index based on initialType
+  const getInitialIndex = () => {
+    const apiTypes: ApiType[] = ['mock', 'firebase'];
+    return apiTypes.indexOf(initialType);
+  };
+  
+  const [selectedIndex, setSelectedIndex] = useState(getInitialIndex());
   const [apiType, setApiType] = useState<ApiType>(initialType);
   
   // API type options

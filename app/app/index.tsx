@@ -4,6 +4,7 @@ import { Card, Text, Input, Button, Divider, Spinner, Layout } from "@ui-kitten/
 import { useRouter } from "expo-router";
 import { ApiProvider } from "../api/ApiProvider";
 import { BackendSelector } from "../api/BackendSelector";
+import { Login } from "../components/Login";
 
 export default function HomeScreen() {
   const [roomId, setRoomId] = useState("");
@@ -11,11 +12,11 @@ export default function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Initialize API provider with mock provider
+  // Initialize API provider with Firebase provider
   const initializeApiProvider = async () => {
     try {
       const provider = ApiProvider.getInstance();
-      await provider.initialize('mock');
+      await provider.initialize('firebase');
     } catch (error) {
       console.error('Error initializing API provider:', error);
       setError('Failed to initialize API provider. Please try again.');
@@ -77,8 +78,11 @@ export default function HomeScreen() {
 
   return (
     <Layout style={styles.container}>
+      <View style={styles.header}>
+        <Text category="h4">WebRTC Video Chat</Text>
+      </View>
       <View style={styles.content}>
-        <Text category="h1" style={styles.title}>WebRTC Video Chat</Text>
+        <Text category="h1" style={styles.title}>Create or Join Room</Text>
         
         <Card style={styles.card}>
           <Button
@@ -122,6 +126,10 @@ export default function HomeScreen() {
         </Card>
         
         <BackendSelector onSelect={handleApiSelect} />
+        
+        <Login onLoginStateChange={(isLoggedIn) => {
+          console.log("Login state changed:", isLoggedIn);
+        }} />
       </View>
     </Layout>
   );
@@ -130,7 +138,17 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f9fc"
+    backgroundColor: "#f7f9fc",
+    paddingTop: 40, // Safe area for status bar
+  },
+  header: {
+    padding: 20,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     flex: 1,
