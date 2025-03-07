@@ -1,6 +1,7 @@
 import '../css/index.css';
-import ApiProvider, { determineApiClientType } from './api/ApiProvider.js';
+import ApiProvider from './api/ApiProvider.js';
 import BackendSelector from './api/BackendSelector.js';
+import { loadConfig } from './api/config.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const createRoomBtn = document.getElementById('createRoomBtn');

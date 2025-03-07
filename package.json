@@ -7,7 +7,7 @@
     "src/html/room.html"
   ],
   "scripts": {
-    "start": "parcel serve src/html/*.html --dist-dir public",
+    "start": "parcel serve src/html/*.html --dist-dir public --no-hmr",
     "build": "parcel build src/html/*.html --dist-dir public",
     "clean": "rm -rf public/* .parcel-cache",
     "test": "echo 'Running basic checks...' && npm run test:validate",
@@ -15,7 +15,8 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "parcel": "^2.9.3"
+    "parcel": "^2.9.3",
+    "parcel-reporter-static-files-copy": "^1.5.3"
   },
   "browserslist": [
     "> 1%",

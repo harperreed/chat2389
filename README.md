@@ -100,6 +100,8 @@ python server.py
 
 3. Open your browser and navigate to `http://localhost:5000`
 
+**Note:** Hot Module Reloading (HMR) is disabled by default because it conflicts with our WebRTC implementation. If you want to enable it, remove the `--no-hmr` flag from the start script in package.json. However, be aware that this might cause WebSocket connection errors if your Flask server doesn't support WebSockets.
+
 ### Running in Production
 
 1. Build the frontend:
