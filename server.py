@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, redirect
 import os
 import logging
 import sys
@@ -190,7 +190,8 @@ def room(room_id):
     """Serve the room page."""
     if room_id not in active_rooms:
         logger.warning(f"Attempt to access non-existent room: {room_id}")
-        return "Room not found", 404
+        # Redirect to index instead of showing error
+        return redirect('/')
     
     logger.debug(f"Serving room page for room: {room_id}")
     

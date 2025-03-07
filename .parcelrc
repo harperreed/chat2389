@@ -1,7 +1,4 @@
 {
   "extends": "@parcel/config-default",
-  "reporters": ["...", "parcel-reporter-static-files-copy"],
-  "hmrOptions": {
-    "enabled": false
-  }
+  "reporters": ["...", "parcel-reporter-static-files-copy"]
 }

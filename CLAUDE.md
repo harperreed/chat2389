@@ -39,6 +39,7 @@
 - Validate all user inputs before processing
 - Use clear response structures for API endpoints
 - Include docstrings for all functions and classes
+- Use `uv` instead of `pip` for Python package management
 
 ### Project Structure
 - Frontend in `/src` with modular component organization
