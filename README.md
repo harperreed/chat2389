@@ -26,10 +26,17 @@ A simple peer-to-peer video chat application using WebRTC, Python, and modular J
 
 - `src/`: Frontend source code
   - `js/`: JavaScript modules
+    - `api/`: Data access layer for backend communication
+      - `ApiInterface.js`: Abstract interface defining backend contract
+      - `FlaskApiClient.js`: Implementation for Flask backend
+      - `MockApiClient.js`: Mock implementation for testing
+      - `ApiProvider.js`: Factory for API client instances
+      - `config.js`: Backend configuration
+      - `BackendSelector.js`: UI widget for switching backends in development
     - `webrtc.js`: WebRTC connection handling
     - `media.js`: Media device access and control
     - `chat.js`: Chat functionality
-    - `signaling.js`: Communication with server
+    - `signaling.js`: Communication with server using the data access layer
     - `room.js`: Main room page logic
     - `index.js`: Home page logic
   - `css/`: Stylesheet files
@@ -173,7 +180,57 @@ The application includes comprehensive debug logging:
 ## Technical Implementation
 
 - **Server**: Flask web server for serving pages and handling signaling
-- **Client**: Pure JavaScript implementation of WebRTC
+- **Client**: Modular JavaScript implementation with WebRTC
+- **Data Access Layer**: Abstraction for backend communication, allowing multiple backend implementations
 - **Signaling**: REST API endpoints (in a real app, this would use WebSockets)
 - **STUN servers**: Google's public STUN servers for NAT traversal
 - **Media Negotiation**: Standard WebRTC offer/answer mechanism
+
+## Alternative Backends and Data Access Layer
+
+The application features a comprehensive Data Access Layer (DAL) that abstracts all backend communication, allowing for easy switching between different backend implementations.
+
+### Features of the Data Access Layer
+
+- **Multiple Backend Support**: Switch between backends without changing application code
+- **Input Validation**: Comprehensive validation of all parameters before API calls 
+- **Error Handling**: Robust error handling with retries, timeouts, and graceful degradation
+- **Configurability**: Environment-specific configurations with runtime updates
+- **Health Monitoring**: Connection status tracking with event notifications
+- **Developer Tools**: UI widget for configuring backends during development
+
+### Available Backend Implementations
+
+1. **Flask API Client**: The default implementation using the Python Flask backend
+2. **Mock API Client**: An in-memory implementation for development and testing without a server
+
+### Using the Mock Backend
+
+For development and testing without running a server:
+
+1. **URL Parameter**: Add `?api=mock` to the URL to use the mock backend
+2. **UI Widget**: Use the backend selector widget in development mode (press Ctrl+Shift+B)
+3. **Configuration**: Set `window.ENV.API_CONFIG = { type: 'mock' }` in the console
+4. **Environment**: Use the TEST environment which defaults to the mock backend
+
+### Adding a New Backend Implementation
+
+To add a new backend implementation (e.g., Node.js, Go, Java):
+
+1. **Create Implementation**: Extend the `ApiInterface` abstract class
+2. **Register Backend**: Add it to the configuration system
+3. **Configure Options**: Add any backend-specific configuration options
+4. **Test**: Validate your implementation using the provided tools
+
+Detailed implementation instructions are available in `src/js/api/README.md`.
+
+### Developer Tools
+
+The DAL includes several developer tools:
+
+1. **Backend Selector**: A UI widget to switch backends and configure options at runtime
+2. **Configuration API**: Programmatic control of backend settings
+3. **Connection Indicator**: Visual indication of backend connection status
+4. **Console Access**: Global objects for debugging via browser console
+
+In development mode, press `Ctrl+Shift+B` or `Cmd+Shift+B` to access the backend selector.

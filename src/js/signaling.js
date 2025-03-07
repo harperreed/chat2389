@@ -1,3 +1,5 @@
+import ApiProvider, { determineApiClientType } from './api/ApiProvider.js';
+
 /**
  * Signaling manager for handling communication with the server
  */
@@ -8,6 +10,12 @@ export default class SignalingManager {
         this.pollingInterval = null;
         this.onSignalCallbacks = [];
         this.onRoomStatusCallbacks = [];
+        
+        // Get the API client
+        const apiType = determineApiClientType();
+        this.apiClient = ApiProvider.getClient(apiType);
+        
+        console.debug(`Using ${apiType} API client for signaling`);
     }
     
     /**
@@ -15,14 +23,7 @@ export default class SignalingManager {
      */
     async joinRoom() {
         try {
-            const response = await fetch(`/api/join-room/${this.roomId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const data = await response.json();
+            const data = await this.apiClient.joinRoom(this.roomId);
             
             if (data.success) {
                 this.userId = data.userId;
@@ -59,18 +60,7 @@ export default class SignalingManager {
         this.stopPolling();
         
         try {
-            const response = await fetch('/api/leave-room', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    roomId: this.roomId,
-                    userId: this.userId
-                })
-            });
-            
-            const data = await response.json();
+            const data = await this.apiClient.leaveRoom(this.roomId, this.userId);
             
             if (data.success) {
                 return { success: true };
@@ -95,14 +85,7 @@ export default class SignalingManager {
      */
     async getRoomStatus() {
         try {
-            const response = await fetch(`/api/room-status/${this.roomId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            const data = await response.json();
+            const data = await this.apiClient.getRoomStatus(this.roomId);
             
             if (data.success) {
                 // Trigger room status callbacks
@@ -156,18 +139,7 @@ export default class SignalingManager {
      */
     async pollSignals() {
         try {
-            const response = await fetch('/api/get-signals', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    roomId: this.roomId,
-                    userId: this.userId
-                })
-            });
-            
-            const data = await response.json();
+            const data = await this.apiClient.getSignals(this.roomId, this.userId);
             
             if (data.success) {
                 // Process incoming signals
@@ -200,20 +172,12 @@ export default class SignalingManager {
      */
     async sendSignal(targetId, signal) {
         try {
-            const response = await fetch('/api/signal', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    roomId: this.roomId,
-                    userId: this.userId,
-                    targetId: targetId,
-                    signal: signal
-                })
-            });
-            
-            const data = await response.json();
+            const data = await this.apiClient.sendSignal(
+                this.roomId,
+                this.userId,
+                targetId,
+                signal
+            );
             
             if (data.success) {
                 return { success: true };

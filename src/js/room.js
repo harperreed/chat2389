@@ -3,6 +3,9 @@ import SignalingManager from './signaling.js';
 import WebRTCManager from './webrtc.js';
 import MediaManager from './media.js';
 import ChatManager from './chat.js';
+import BackendSelector from './api/BackendSelector.js';
+import ApiProvider from './api/ApiProvider.js';
+import { loadConfig } from './api/config.js';
 
 document.addEventListener('DOMContentLoaded', async function() {
     // Get room ID from the template or URL
@@ -388,4 +391,48 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Start the application
     joinRoom();
+    
+    // Get configuration
+    const config = loadConfig();
+    
+    // Initialize API debugging
+    ApiProvider.enableDebug(config.debug);
+    
+    // Initialize backend selector
+    const isDevMode = config.environment !== 'production';
+    if (isDevMode) {
+        const selector = new BackendSelector({ 
+            visible: window.location.search.includes('debug=true'),
+            position: 'bottom-right',
+            reloadOnChange: false,
+            onBackendChange: (newConfig) => {
+                // Show notification
+                const notification = document.createElement('div');
+                notification.textContent = `Backend changed to ${newConfig.type}`;
+                notification.style.position = 'fixed';
+                notification.style.top = '10px';
+                notification.style.right = '10px';
+                notification.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                notification.style.color = 'white';
+                notification.style.padding = '8px 12px';
+                notification.style.borderRadius = '4px';
+                notification.style.zIndex = '9999';
+                document.body.appendChild(notification);
+                
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 3000);
+            }
+        });
+        
+        // Create keyboard shortcut for showing the selector
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Shift+B or Cmd+Shift+B
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'b') {
+                selector.toggle();
+                e.preventDefault();
+            }
+        });
+    }
 });
