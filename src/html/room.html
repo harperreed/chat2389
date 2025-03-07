@@ -5,65 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebRTC Video Chat</title>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="room-info">
-                <div>Room:</div>
-                <div class="room-id" id="roomIdDisplay">
-                    <span id="roomIdText">{{ room_id }}</span>
-                    <button class="copy-btn" id="copyRoomId" title="Copy Room ID">
+<body class="bg-gray-100 font-sans p-5">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-5">
+            <div class="flex items-center gap-5 mb-4 md:mb-0">
+                <div class="text-gray-600">Room:</div>
+                <div class="bg-blue-50 px-3 py-2 rounded font-mono text-sm flex items-center" id="roomIdDisplay">
+                    <span id="roomIdText" class="mr-2">{{ room_id }}</span>
+                    <button class="text-blue-500 hover:text-blue-700" id="copyRoomId" title="Copy Room ID">
                         📋
                     </button>
                 </div>
-                <div class="status" id="roomStatus">Connecting...</div>
+                <div class="text-gray-600 text-sm" id="roomStatus">Connecting...</div>
             </div>
-            <div class="controls">
-                <button id="toggleAudioBtn" class="primary-btn">Mute</button>
-                <button id="toggleVideoBtn" class="primary-btn">Disable Video</button>
-                <button id="shareScreenBtn" class="secondary-btn">Share Screen</button>
-                <button id="settingsBtn" class="secondary-btn">Media Settings</button>
-                <button id="leaveRoomBtn" class="danger-btn">Leave Room</button>
+            <div class="flex flex-wrap gap-2">
+                <button id="toggleAudioBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
+                    Mute
+                </button>
+                <button id="toggleVideoBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
+                    Disable Video
+                </button>
+                <button id="shareScreenBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors">
+                    Share Screen
+                </button>
+                <button id="settingsBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors">
+                    Media Settings
+                </button>
+                <button id="leaveRoomBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition-colors">
+                    Leave Room
+                </button>
             </div>
         </div>
         
-        <div class="video-grid" id="videoGrid">
-            <div class="video-container local" id="localVideoContainer">
-                <video id="localVideo" autoplay muted playsinline></video>
-                <div class="video-label">You</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="videoGrid">
+            <div class="video-container local bg-black rounded-lg overflow-hidden relative aspect-video" id="localVideoContainer">
+                <video id="localVideo" class="w-full h-full object-cover" autoplay muted playsinline></video>
+                <div class="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">You</div>
             </div>
         </div>
         
-        <div class="chat-container" id="chatContainer">
-            <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-input-container">
-                <input type="text" class="chat-input" id="chatInput" placeholder="Type a message...">
-                <button class="send-btn primary-btn" id="sendMessageBtn">Send</button>
+        <div class="mt-5 border border-gray-200 rounded-lg overflow-hidden h-[300px] flex flex-col bg-white max-w-2xl mx-auto shadow-sm" id="chatContainer">
+            <div class="flex-1 overflow-y-auto p-4" id="chatMessages"></div>
+            <div class="flex border-t border-gray-200 p-2">
+                <input type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                    id="chatInput" placeholder="Type a message...">
+                <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r transition-colors" 
+                    id="sendMessageBtn">Send</button>
             </div>
         </div>
     </div>
     
-    <div id="devices-dialog" class="hidden">
-        <div class="dialog-content">
-            <div class="dialog-header">
-                <h3>Media Settings</h3>
-                <button class="close-dialog" id="closeDialog">&times;</button>
+    <div id="devices-dialog" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-5 w-[400px] max-w-[90%]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Media Settings</h3>
+                <button class="text-2xl hover:text-gray-700" id="closeDialog">&times;</button>
             </div>
-            <div class="device-select">
-                <label for="audioInput">Microphone</label>
-                <select id="audioInput"></select>
+            <div class="mb-4">
+                <label for="audioInput" class="block font-medium mb-1">Microphone</label>
+                <select id="audioInput" class="w-full p-2 border border-gray-300 rounded"></select>
             </div>
-            <div class="device-select">
-                <label for="videoInput">Camera</label>
-                <select id="videoInput"></select>
+            <div class="mb-4">
+                <label for="videoInput" class="block font-medium mb-1">Camera</label>
+                <select id="videoInput" class="w-full p-2 border border-gray-300 rounded"></select>
             </div>
-            <div class="device-select">
-                <label for="audioOutput">Speaker</label>
-                <select id="audioOutput"></select>
+            <div class="mb-4">
+                <label for="audioOutput" class="block font-medium mb-1">Speaker</label>
+                <select id="audioOutput" class="w-full p-2 border border-gray-300 rounded"></select>
             </div>
-            <div class="dialog-footer">
-                <button class="secondary-btn" id="cancelDeviceSelection">Cancel</button>
-                <button class="primary-btn" id="applyDeviceSelection">Apply</button>
+            <div class="flex justify-end gap-2 mt-5">
+                <button class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded transition-colors" 
+                    id="cancelDeviceSelection">Cancel</button>
+                <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors" 
+                    id="applyDeviceSelection">Apply</button>
             </div>
         </div>
     </div>

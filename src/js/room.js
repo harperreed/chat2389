@@ -173,14 +173,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Create new video container
             container = document.createElement('div');
             container.id = `video-${peerId}`;
-            container.className = 'video-container';
+            container.className = 'video-container bg-black rounded-lg overflow-hidden relative aspect-video';
             
             const video = document.createElement('video');
             video.autoplay = true;
             video.playsInline = true;
+            video.className = 'w-full h-full object-cover';
             
             const label = document.createElement('div');
-            label.className = 'video-label';
+            label.className = 'absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs';
             label.textContent = `Peer ${peerId.substring(0, 4)}`;
             
             container.appendChild(video);
@@ -205,18 +206,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Display a chat message
     function displayChatMessage(message, isLocal) {
         const messageEl = document.createElement('div');
-        messageEl.className = `message ${isLocal ? 'local' : 'remote'}`;
+        messageEl.className = `message ${isLocal ? 'local' : 'remote'} mb-2.5 px-3 py-2 rounded-lg max-w-[80%] relative clear-both text-sm`;
         
         const senderEl = document.createElement('div');
-        senderEl.className = 'sender';
+        senderEl.className = 'font-bold mb-1 text-xs text-gray-600';
         senderEl.textContent = isLocal ? 'You' : `Peer ${message.sender.substring(0, 4)}`;
         
         const contentEl = document.createElement('div');
-        contentEl.className = 'content';
+        contentEl.className = 'break-words';
         contentEl.textContent = message.content;
         
         const timestampEl = document.createElement('div');
-        timestampEl.className = 'timestamp';
+        timestampEl.className = 'text-xs text-gray-500 mt-1 text-right';
         timestampEl.textContent = new Date(message.timestamp).toLocaleTimeString();
         
         messageEl.appendChild(senderEl);
