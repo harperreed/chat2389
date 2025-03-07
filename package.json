@@ -19,7 +19,10 @@
     "test:e2e": "playwright test --config tests/e2e/playwright.config.js",
     "test:coverage": "jest --config tests/frontend/jest.config.js --coverage && python -m pytest tests/backend --cov=server",
     "format": "npx @biomejs/biome format --write ./src && python -m ruff format .",
-    "lint:fix": "npx @biomejs/biome lint --apply ./src && python -m ruff check --fix ."
+    "lint:fix": "npx @biomejs/biome lint --apply ./src && python -m ruff check --fix .",
+    "next:dev": "next dev",
+    "next:build": "next build",
+    "next:start": "next start"
   },
   "devDependencies": {
     "@babel/core": "^7.26.9",
@@ -46,6 +49,9 @@
   ],
   "dependencies": {
     "@tailwindcss/postcss": "^4.0.12",
-    "pocketbase": "^0.21.1"
+    "next": "^15.2.1",
+    "pocketbase": "^0.21.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

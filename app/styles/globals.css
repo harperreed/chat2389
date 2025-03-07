@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles that complement Tailwind */
+.video-container.local video {
+  @apply scale-x-[-1]; /* Mirror the local video */
+}
+
+.video-container.local.hidden {
+  @apply absolute w-0 h-0 overflow-hidden opacity-0 pointer-events-none;
+  /* Using position:absolute and zero size instead of display:none 
+     to ensure the video keeps capturing even when hidden */
+}
+
+.chat-messages::after {
+  content: "";
+  @apply clear-both table;
+}
+
+.message.local {
+  @apply bg-green-100 float-right rounded-tr-none;
+}
+
+.message.remote {
+  @apply bg-gray-100 float-left rounded-tl-none;
+}
+
+/* OR separator styling */
+.or-separator {
+  @apply my-4 flex items-center text-center text-gray-500;
+}
+.or-separator::before,
+.or-separator::after {
+  content: '';
+  @apply flex-1 border-b border-gray-300;
+}
+.or-separator::before {
+  @apply mr-2.5;
+}
+.or-separator::after {
+  @apply ml-2.5;
+}
+
+/* Basic styling */
+body {
+  @apply bg-gray-100 font-sans text-gray-800;
+  min-height: 100vh;
+}
