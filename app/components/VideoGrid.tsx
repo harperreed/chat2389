@@ -15,7 +15,7 @@ interface VideoGridProps {
 export const VideoGrid: React.FC<VideoGridProps> = ({
   localStream,
   remoteStreams,
-  screenShareStream = null
+  screenShareStream = null,
 }) => {
   const { width } = useWindowDimensions();
   const streams = Array.from(remoteStreams.entries());
@@ -29,7 +29,7 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
         rows: 1,
         screenShareColumns: 1,
         screenShareRows: 1,
-        isScreenShareMode: true
+        isScreenShareMode: true,
       };
     }
 
@@ -54,21 +54,21 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
   // Calculate video container dimensions based on grid layout
   const getContainerStyle = (index: number) => {
     const { columns, rows } = layout;
-    
+
     // In screen share mode, render differently
     if (isScreenShareMode && index === 0 && screenShareStream) {
       return {
         width: '100%',
         height: undefined,
-        aspectRatio: 16/9,
-        marginBottom: 10
+        aspectRatio: 16 / 9,
+        marginBottom: 10,
       };
     }
-    
+
     return {
-      width: `${(100 / columns) - 2}%`,
+      width: `${100 / columns - 2}%`,
       marginHorizontal: '1%',
-      marginVertical: 5
+      marginVertical: 5,
     };
   };
 
@@ -77,31 +77,21 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
       {/* Screen share stream (if active) */}
       {isScreenShareMode && screenShareStream && (
         <View style={getContainerStyle(0)}>
-          <VideoContainer 
-            stream={screenShareStream}
-            label="Screen Share"
-            isScreenShare={true}
-          />
+          <VideoContainer stream={screenShareStream} label="Screen Share" isScreenShare={true} />
         </View>
       )}
-      
+
       {/* Participants grid */}
       <View style={[styles.participantsGrid, isScreenShareMode && styles.smallParticipantsGrid]}>
         {/* Local stream */}
         <View style={getContainerStyle(0)}>
-          <VideoContainer 
-            stream={localStream}
-            isLocal={true}
-          />
+          <VideoContainer stream={localStream} isLocal={true} />
         </View>
-        
+
         {/* Remote streams */}
         {streams.map(([peerId, stream], index) => (
           <View key={peerId} style={getContainerStyle(index + 1)}>
-            <VideoContainer 
-              stream={stream}
-              label={`Peer ${index + 1}`}
-            />
+            <VideoContainer stream={stream} label={`Peer ${index + 1}`} />
           </View>
         ))}
       </View>
@@ -112,18 +102,18 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
 const styles = StyleSheet.create({
   grid: {
     flex: 1,
-    padding: 5
+    padding: 5,
   },
   participantsGrid: {
     flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
-    alignItems: 'flex-start'
+    alignItems: 'flex-start',
   },
   smallParticipantsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center'
-  }
+    justifyContent: 'center',
+  },
 });

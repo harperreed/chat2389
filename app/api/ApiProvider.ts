@@ -13,11 +13,11 @@ export class ApiProvider {
   private static instance: ApiProvider;
   private apiClient: ApiInterface | null = null;
   private apiType: ApiType | null = null;
-  
+
   private constructor() {
     // Private constructor for singleton
   }
-  
+
   /**
    * Get the API provider instance
    */
@@ -27,7 +27,7 @@ export class ApiProvider {
     }
     return ApiProvider.instance;
   }
-  
+
   /**
    * Initialize with Firebase (only supported option)
    */
@@ -36,24 +36,24 @@ export class ApiProvider {
     if (this.apiClient && this.apiType === 'firebase') {
       return this.apiClient;
     }
-    
+
     // If we have a different client, disconnect it
     if (this.apiClient) {
       await this.apiClient.disconnect();
       this.apiClient = null;
       this.apiType = null;
     }
-    
+
     // Create the Firebase client
     this.apiClient = new FirebaseApiClient(config.firebase);
-    
+
     // Connect to the API
     await this.apiClient.connect();
     this.apiType = 'firebase';
-    
+
     return this.apiClient;
   }
-  
+
   /**
    * Get the current API client
    */
@@ -63,7 +63,7 @@ export class ApiProvider {
     }
     return this.apiClient;
   }
-  
+
   /**
    * Get the current API type
    */

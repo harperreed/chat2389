@@ -8,19 +8,19 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 // Mock firebase
 jest.mock('firebase/app', () => ({
   initializeApp: jest.fn(() => ({})),
-  apps: []
+  apps: [],
 }));
 
 jest.mock('firebase/auth', () => ({
   getAuth: jest.fn(() => ({
     onAuthStateChanged: jest.fn(),
     signInWithPopup: jest.fn(),
-    signOut: jest.fn()
+    signOut: jest.fn(),
   })),
   GoogleAuthProvider: jest.fn().mockImplementation(() => ({})),
   onAuthStateChanged: jest.fn(),
   signInWithPopup: jest.fn(),
-  signOut: jest.fn()
+  signOut: jest.fn(),
 }));
 
 jest.mock('firebase/firestore', () => ({
@@ -36,19 +36,25 @@ jest.mock('firebase/firestore', () => ({
   query: jest.fn(),
   where: jest.fn(),
   orderBy: jest.fn(),
-  limit: jest.fn()
+  limit: jest.fn(),
 }));
 
 // Mock navigator media devices
 Object.defineProperty(global.navigator, 'mediaDevices', {
   value: {
-    getUserMedia: jest.fn().mockImplementation(() => Promise.resolve({
-      getTracks: () => [{
-        stop: jest.fn()
-      }]
-    })),
-    enumerateDevices: jest.fn().mockImplementation(() => Promise.resolve([]))
-  }
+    getUserMedia: jest.fn().mockImplementation(() =>
+      Promise.resolve({
+        getTracks: () => [
+          {
+            stop: jest.fn(),
+            getSettings: () => ({ deviceId: 'default' }),
+          },
+        ],
+      })
+    ),
+    enumerateDevices: jest.fn().mockImplementation(() => Promise.resolve([])),
+  },
+  configurable: true,
 });
 
 // Mock WebRTC APIs
@@ -57,7 +63,7 @@ global.RTCPeerConnection = jest.fn().mockImplementation(() => ({
     onopen: null,
     onclose: null,
     onmessage: null,
-    send: jest.fn()
+    send: jest.fn(),
   }),
   addTrack: jest.fn(),
   createOffer: jest.fn().mockResolvedValue({}),
@@ -68,7 +74,7 @@ global.RTCPeerConnection = jest.fn().mockImplementation(() => ({
   onicecandidate: null,
   ontrack: null,
   onnegotiationneeded: null,
-  close: jest.fn()
+  close: jest.fn(),
 }));
 
 // Handle warnings and errors more strictly in tests
@@ -76,7 +82,7 @@ const originalConsoleError = console.error;
 console.error = (...args) => {
   // Convert args to string for easier matching
   const message = args.join(' ');
-  
+
   // Fail tests on specific errors we want to catch
   if (
     message.includes('Warning: Failed prop type') ||
@@ -85,7 +91,7 @@ console.error = (...args) => {
   ) {
     throw new Error(message);
   }
-  
+
   // Print other errors normally
   originalConsoleError(...args);
 };

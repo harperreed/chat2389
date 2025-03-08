@@ -16,11 +16,11 @@ interface ChatInterfaceProps {
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   messages,
   onSendMessage,
-  isReady = false
+  isReady = false,
 }) => {
   const [inputText, setInputText] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -29,7 +29,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }, 100);
     }
   }, [messages.length]);
-  
+
   // Handle send button press
   const handleSend = () => {
     if (inputText.trim() && isReady) {
@@ -37,7 +37,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       setInputText('');
     }
   };
-  
+
   // Format timestamp to readable time
   const formatTimestamp = (timestamp: number): string => {
     const date = new Date(timestamp);
@@ -46,9 +46,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <Card style={styles.container}>
-      <Text category="h6" style={styles.header}>Chat</Text>
+      <Text category="h6" style={styles.header}>
+        Chat
+      </Text>
       <Divider />
-      
+
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
@@ -64,21 +66,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               key={message.id}
               style={[
                 styles.messageContainer,
-                message.isLocal ? styles.localMessage : styles.remoteMessage
+                message.isLocal ? styles.localMessage : styles.remoteMessage,
               ]}
             >
               <Text style={styles.messageContent}>{message.content}</Text>
-              <Text style={styles.timestamp}>
-                {formatTimestamp(message.timestamp)}
-              </Text>
+              <Text style={styles.timestamp}>{formatTimestamp(message.timestamp)}</Text>
             </View>
           ))
         )}
       </ScrollView>
-      
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.inputContainer}>
           <Input
             style={styles.input}
@@ -88,10 +86,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             disabled={!isReady}
             onSubmitEditing={handleSend}
           />
-          <Button
-            onPress={handleSend}
-            disabled={!isReady || !inputText.trim()}
-          >
+          <Button onPress={handleSend} disabled={!isReady || !inputText.trim()}>
             Send
           </Button>
         </View>

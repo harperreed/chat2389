@@ -62,31 +62,31 @@ export interface ApiInterface {
    * Get the name of the API provider
    */
   getProviderName(): string;
-  
+
   /**
    * Sign in with Google (Firebase only)
    * Returns null if not supported by the provider
    */
   signInWithGoogle?(): Promise<UserInfo>;
-  
+
   /**
    * Sign out (Firebase only)
    * No-op if not supported by the provider
    */
   signOut?(): Promise<void>;
-  
+
   /**
    * Get current user (Firebase only)
    * Returns null if not supported by the provider or not signed in
    */
   getCurrentUser?(): UserInfo | null;
-  
+
   /**
    * Check if user is signed in (Firebase only)
    * Returns false if not supported by the provider
    */
   isSignedIn?(): boolean;
-  
+
   /**
    * Add auth state change listener (Firebase only)
    * Returns a function to remove the listener

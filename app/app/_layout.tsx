@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { Stack } from "expo-router";
+import React, { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
 import * as eva from '@eva-design/eva';
 import { EvaIconsPack } from '@ui-kitten/eva-icons';
 import { ApplicationProvider, IconRegistry, Spinner, Layout } from '@ui-kitten/components';
 import { theme } from '../theme';
 import { ApiProvider } from '../api/ApiProvider';
-import { View, Text } from "react-native";
+import { View, Text } from 'react-native';
 
 export default function RootLayout() {
   const [initializing, setInitializing] = useState(true);
-  
+
   // Initialize Firebase and check auth state on app start
   useEffect(() => {
     const initializeApp = async () => {
@@ -18,7 +18,7 @@ export default function RootLayout() {
         console.log('[App] Initializing Firebase on app start');
         const provider = ApiProvider.getInstance();
         await provider.initialize();
-        
+
         console.log('[App] Firebase initialized');
       } catch (error) {
         console.error('[App] Error initializing Firebase:', error);
@@ -27,10 +27,10 @@ export default function RootLayout() {
         setInitializing(false);
       }
     };
-    
+
     initializeApp();
   }, []);
-  
+
   // Show loading screen during initialization
   if (initializing) {
     return (
@@ -45,7 +45,7 @@ export default function RootLayout() {
       </>
     );
   }
-  
+
   return (
     <>
       <IconRegistry icons={EvaIconsPack} />

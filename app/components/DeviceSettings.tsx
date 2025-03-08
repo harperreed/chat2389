@@ -36,12 +36,9 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({
   currentAudioOutputDevice,
 }) => {
   // Find initial index paths based on current devices
-  const findIndexPath = (
-    devices: MediaDevice[],
-    currentDeviceId: string | null
-  ): IndexPath => {
+  const findIndexPath = (devices: MediaDevice[], currentDeviceId: string | null): IndexPath => {
     if (!currentDeviceId) return new IndexPath(0);
-    const index = devices.findIndex(device => device.deviceId === currentDeviceId);
+    const index = devices.findIndex((device) => device.deviceId === currentDeviceId);
     return new IndexPath(index >= 0 ? index : 0);
   };
 
@@ -49,11 +46,11 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({
   const [audioInputIndex, setAudioInputIndex] = useState<IndexPath>(
     findIndexPath(audioInputDevices, currentAudioDevice)
   );
-  
+
   const [videoInputIndex, setVideoInputIndex] = useState<IndexPath>(
     findIndexPath(videoInputDevices, currentVideoDevice)
   );
-  
+
   const [audioOutputIndex, setAudioOutputIndex] = useState<IndexPath>(
     findIndexPath(audioOutputDevices, currentAudioOutputDevice)
   );
@@ -64,8 +61,8 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({
     setVideoInputIndex(findIndexPath(videoInputDevices, currentVideoDevice));
     setAudioOutputIndex(findIndexPath(audioOutputDevices, currentAudioOutputDevice));
   }, [
-    audioInputDevices, 
-    videoInputDevices, 
+    audioInputDevices,
+    videoInputDevices,
     audioOutputDevices,
     currentAudioDevice,
     currentVideoDevice,
@@ -77,83 +74,75 @@ export const DeviceSettings: React.FC<DeviceSettingsProps> = ({
     const selectedAudioDevice = audioInputDevices[audioInputIndex.row]?.deviceId || '';
     const selectedVideoDevice = videoInputDevices[videoInputIndex.row]?.deviceId || '';
     const selectedAudioOutputDevice = audioOutputDevices[audioOutputIndex.row]?.deviceId || '';
-    
-    onApply(
-      selectedAudioDevice,
-      selectedVideoDevice,
-      selectedAudioOutputDevice
-    );
-    
+
+    onApply(selectedAudioDevice, selectedVideoDevice, selectedAudioOutputDevice);
+
     onClose();
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
             <Card style={styles.modalContainer}>
-              <Text category="h5" style={styles.title}>Media Settings</Text>
-              
+              <Text category="h5" style={styles.title}>
+                Media Settings
+              </Text>
+
               <View style={styles.formGroup}>
-                <Text category="label" style={styles.label}>Microphone</Text>
+                <Text category="label" style={styles.label}>
+                  Microphone
+                </Text>
                 <Select
                   placeholder="Select Microphone"
                   value={audioInputDevices[audioInputIndex.row]?.label || 'Default'}
                   selectedIndex={audioInputIndex}
-                  onSelect={index => setAudioInputIndex(index as IndexPath)}
+                  onSelect={(index) => setAudioInputIndex(index as IndexPath)}
                 >
                   {audioInputDevices.map((device, index) => (
                     <SelectItem key={device.deviceId} title={device.label} />
                   ))}
                 </Select>
               </View>
-              
+
               <View style={styles.formGroup}>
-                <Text category="label" style={styles.label}>Camera</Text>
+                <Text category="label" style={styles.label}>
+                  Camera
+                </Text>
                 <Select
                   placeholder="Select Camera"
                   value={videoInputDevices[videoInputIndex.row]?.label || 'Default'}
                   selectedIndex={videoInputIndex}
-                  onSelect={index => setVideoInputIndex(index as IndexPath)}
+                  onSelect={(index) => setVideoInputIndex(index as IndexPath)}
                 >
                   {videoInputDevices.map((device, index) => (
                     <SelectItem key={device.deviceId} title={device.label} />
                   ))}
                 </Select>
               </View>
-              
+
               <View style={styles.formGroup}>
-                <Text category="label" style={styles.label}>Speaker</Text>
+                <Text category="label" style={styles.label}>
+                  Speaker
+                </Text>
                 <Select
                   placeholder="Select Speaker"
                   value={audioOutputDevices[audioOutputIndex.row]?.label || 'Default'}
                   selectedIndex={audioOutputIndex}
-                  onSelect={index => setAudioOutputIndex(index as IndexPath)}
+                  onSelect={(index) => setAudioOutputIndex(index as IndexPath)}
                 >
                   {audioOutputDevices.map((device, index) => (
                     <SelectItem key={device.deviceId} title={device.label} />
                   ))}
                 </Select>
               </View>
-              
+
               <View style={styles.buttonContainer}>
-                <Button
-                  appearance="outline"
-                  style={styles.button}
-                  onPress={onClose}
-                >
+                <Button appearance="outline" style={styles.button} onPress={onClose}>
                   Cancel
                 </Button>
-                <Button
-                  style={styles.button}
-                  onPress={handleApply}
-                >
+                <Button style={styles.button} onPress={handleApply}>
                   Apply
                 </Button>
               </View>

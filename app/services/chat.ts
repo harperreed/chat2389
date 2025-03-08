@@ -47,7 +47,7 @@ export class ChatManager {
    */
   private setupDataChannel(): void {
     if (!this.dataChannel) return;
-    
+
     this.dataChannel.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -56,11 +56,11 @@ export class ChatManager {
           sender: data.sender,
           content: data.content,
           timestamp: data.timestamp,
-          isLocal: false
+          isLocal: false,
         };
-        
+
         this.messages.push(message);
-        
+
         if (this.onMessageCallback) {
           this.onMessageCallback(message);
         }
@@ -68,15 +68,15 @@ export class ChatManager {
         console.error('Error parsing chat message:', error);
       }
     };
-    
+
     this.dataChannel.onopen = () => {
       console.log('Chat data channel opened');
     };
-    
+
     this.dataChannel.onclose = () => {
       console.log('Chat data channel closed');
     };
-    
+
     this.dataChannel.onerror = (error) => {
       console.error('Chat data channel error:', error);
     };
@@ -90,32 +90,34 @@ export class ChatManager {
       console.error('Data channel not open');
       return null;
     }
-    
+
     const messageId = this.generateId();
     const timestamp = Date.now();
-    
+
     const message: ChatMessage = {
       id: messageId,
       sender: this.userId,
       content,
       timestamp,
-      isLocal: true
+      isLocal: true,
     };
-    
+
     try {
-      this.dataChannel.send(JSON.stringify({
-        id: messageId,
-        sender: this.userId,
-        content,
-        timestamp
-      }));
-      
+      this.dataChannel.send(
+        JSON.stringify({
+          id: messageId,
+          sender: this.userId,
+          content,
+          timestamp,
+        })
+      );
+
       this.messages.push(message);
-      
+
       if (this.onMessageCallback) {
         this.onMessageCallback(message);
       }
-      
+
       return message;
     } catch (error) {
       console.error('Error sending chat message:', error);
@@ -127,7 +129,9 @@ export class ChatManager {
    * Generate a unique ID for messages
    */
   private generateId(): string {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return (
+      Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    );
   }
 
   /**

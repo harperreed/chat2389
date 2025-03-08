@@ -19,35 +19,35 @@ import { ChatManager, ChatMessage } from '../../services/chat';
 export default function RoomScreen() {
   const { id: roomId } = useLocalSearchParams();
   const router = useRouter();
-  
+
   // State for managing room
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+
   // State for media controls
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  
+
   // State for media streams
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const [screenShareStream, setScreenShareStream] = useState<MediaStream | null>(null);
-  
+
   // State for device selection
   const [audioInputDevices, setAudioInputDevices] = useState<any[]>([]);
   const [videoInputDevices, setVideoInputDevices] = useState<any[]>([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState<any[]>([]);
-  
+
   // State for chat
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatReady, setChatReady] = useState(false);
   const [isChatVisible, setIsChatVisible] = useState(false);
-  
+
   // Service references
   const mediaManager = useRef<MediaManager | null>(null);
   const webrtcManager = useRef<WebRTCManager | null>(null);
@@ -61,38 +61,38 @@ export default function RoomScreen() {
       setLoading(false);
       return;
     }
-    
+
     // Check for authentication first
     const checkAuth = async () => {
       const provider = ApiProvider.getInstance();
       const apiClient = provider.getApiClient();
-      
+
       if (!apiClient) {
         setError('API client not initialized');
         setLoading(false);
         return false;
       }
-      
+
       // Check if the user is authenticated
       if (apiClient.getProviderName() === 'Firebase' && apiClient.getCurrentUser) {
         const user = apiClient.getCurrentUser();
-        
+
         if (!user) {
           console.log('[Room] User not authenticated');
           setError('Please sign in to join a room');
           setLoading(false);
           return false;
         }
-        
+
         console.log('[Room] User authenticated:', user.displayName);
         setIsAuthenticated(true);
         return true;
       }
-      
+
       // Fall back to allow if auth check not possible
       return true;
     };
-    
+
     // Set a timeout to prevent indefinite loading, but with a longer duration
     const timeoutId = setTimeout(() => {
       if (loading) {
@@ -101,28 +101,31 @@ export default function RoomScreen() {
         setLoading(false);
       }
     }, 30000);
-    
+
     const initializeRoom = async () => {
       console.log('[Room] PHASE 1: Starting initialization sequence');
       try {
         console.log('[Room] Starting room initialization');
-        
+
         // Get API provider
         const provider = ApiProvider.getInstance();
         const apiClient = provider.getApiClient();
-        
+
         console.log('[Room] API provider type:', provider.getApiType());
-        
+
         if (!apiClient) {
           throw new Error('API client not initialized');
         }
-        
+
         // Check auth status if using Firebase
         if (apiClient.getProviderName() === 'Firebase' && apiClient.getCurrentUser) {
           const user = apiClient.getCurrentUser();
-          console.log('[Room] Current user:', user ? `${user.displayName} (${user.uid})` : 'Not signed in');
+          console.log(
+            '[Room] Current user:',
+            user ? `${user.displayName} (${user.uid})` : 'Not signed in'
+          );
         }
-        
+
         // Initialize media (if not skipping)
         let stream = null;
         if (!skipMediaAccess) {
@@ -132,17 +135,21 @@ export default function RoomScreen() {
             stream = await mediaManager.current.initialize({ video: true, audio: true });
             setLocalStream(stream);
             console.log('[Room] Media initialized, got stream:', stream ? 'yes' : 'no');
-            
+
             // Get device lists
             console.log('[Room] Enumerating devices');
             const devices = await mediaManager.current.enumerateDevices();
             setAudioInputDevices(mediaManager.current.getAudioInputDevices());
             setVideoInputDevices(mediaManager.current.getVideoInputDevices());
             setAudioOutputDevices(mediaManager.current.getAudioOutputDevices());
-            console.log('[Room] Found devices:', 
-              'audio:', mediaManager.current.getAudioInputDevices().length,
-              'video:', mediaManager.current.getVideoInputDevices().length);
-            
+            console.log(
+              '[Room] Found devices:',
+              'audio:',
+              mediaManager.current.getAudioInputDevices().length,
+              'video:',
+              mediaManager.current.getVideoInputDevices().length
+            );
+
             // Initialize WebRTC
             console.log('[Room] Initializing WebRTC');
             webrtcManager.current = new WebRTCManager();
@@ -158,41 +165,41 @@ export default function RoomScreen() {
         } else {
           console.log('[Room] Skipping media initialization');
         }
-        
+
         // Setup WebRTC callbacks if WebRTC is initialized
         if (webrtcManager.current && !skipMediaAccess) {
           webrtcManager.current.setOnTrack((stream, peerId) => {
             console.log('[Room] Received remote stream from peer:', peerId);
-            setRemoteStreams(prev => {
+            setRemoteStreams((prev) => {
               const newStreams = new Map(prev);
               newStreams.set(peerId, stream);
               return newStreams;
             });
           });
         }
-        
+
         // Initialize signaling
         console.log('[Room] Initializing signaling service');
         signalingService.current = new SignalingService(apiClient);
-        
+
         // Join room
         console.log('[Room] Joining room:', roomId);
         const newUserId = await signalingService.current.joinRoom(roomId as string);
         setUserId(newUserId);
         console.log('[Room] Joined room with user ID:', newUserId);
-        
+
         // Initialize chat manager if WebRTC is available
         if (!skipMediaAccess && webrtcManager.current) {
           console.log('[Room] Initializing chat manager');
           chatManager.current = new ChatManager(newUserId, webrtcManager.current);
           chatManager.current.initialize(true); // Initialize as initiator
-          
+
           // Setup chat message handler
-          chatManager.current.onMessage(message => {
+          chatManager.current.onMessage((message) => {
             console.log('[Room] Received chat message from:', message.sender);
-            setChatMessages(prev => [...prev, message]);
+            setChatMessages((prev) => [...prev, message]);
           });
-          
+
           // Enable chat
           setChatReady(true);
         } else {
@@ -200,14 +207,13 @@ export default function RoomScreen() {
           // Still set chatReady to true so the timeout doesn't occur
           setChatReady(true);
         }
-        
+
         setConnected(true);
-        
+
         // Setup signaling handlers
         console.log('[Room] Setting up signaling handlers');
         setupSignalingHandlers();
         console.log('[Room] Room initialization complete');
-        
       } catch (error) {
         console.error('[Room] Error initializing room:', error);
         setError(`Failed to join the room: ${error.message || 'Unknown error'}`);
@@ -224,9 +230,9 @@ export default function RoomScreen() {
           setSkipMediaAccess(true);
           return false;
         }
-        
+
         console.log('[Room] Media devices API is available');
-        
+
         // Quick test of permissions - just check if permissions are accessible
         try {
           console.log('[Room] Requesting permission status...');
@@ -235,11 +241,11 @@ export default function RoomScreen() {
             // @ts-ignore
             const cameraPermission = await navigator.permissions.query({ name: 'camera' });
             console.log('[Room] Camera permission status:', cameraPermission.state);
-            
+
             // @ts-ignore
             const micPermission = await navigator.permissions.query({ name: 'microphone' });
             console.log('[Room] Microphone permission status:', micPermission.state);
-            
+
             // If both permissions are denied, skip media access
             if (cameraPermission.state === 'denied' && micPermission.state === 'denied') {
               console.log('[Room] Both camera and microphone permissions are denied');
@@ -253,7 +259,7 @@ export default function RoomScreen() {
           console.log('[Room] Error checking permissions:', permErr);
           // Continue despite permission check error - we'll catch it later
         }
-        
+
         return true;
       } catch (err) {
         console.error('[Room] Error checking media support:', err);
@@ -261,7 +267,7 @@ export default function RoomScreen() {
         return false;
       }
     };
-    
+
     // Run initialization sequence
     const startInitialization = async () => {
       // First check authentication
@@ -273,35 +279,35 @@ export default function RoomScreen() {
         setLoading(false);
         return;
       }
-      
+
       // Then check media support
       const hasMediaSupport = await checkMediaSupport();
       console.log('[Room] Media support check result:', hasMediaSupport);
-      
+
       if (!hasMediaSupport) {
         console.log('[Room] Proceeding without media support');
         setSkipMediaAccess(true);
-        
+
         // Skip media initialization entirely
         try {
           console.log('[Room] Starting initialization without media');
           const provider = ApiProvider.getInstance();
           const apiClient = provider.getApiClient();
-          
+
           if (!apiClient) {
             throw new Error('API client not initialized');
           }
-          
+
           // Initialize signaling only
           console.log('[Room] Initializing signaling service');
           signalingService.current = new SignalingService(apiClient);
-          
+
           // Join room without media
           console.log('[Room] Joining room without media:', roomId);
           const newUserId = await signalingService.current.joinRoom(roomId as string);
           setUserId(newUserId);
           console.log('[Room] Joined room with user ID:', newUserId);
-          
+
           setConnected(true);
           setLoading(false);
         } catch (error) {
@@ -311,65 +317,65 @@ export default function RoomScreen() {
         }
         return; // Skip the regular initialization
       }
-      
+
       // Only try to initialize with media if we have support and permission
       await initializeRoom();
     };
-    
+
     startInitialization();
-    
+
     // Cleanup on unmount
     return () => {
       clearTimeout(timeoutId);
       cleanup();
     };
   }, [roomId]);
-  
+
   // Setup signaling handlers for WebRTC
   const setupSignalingHandlers = () => {
     if (!signalingService.current || !webrtcManager.current) return;
-    
+
     // Handle WebRTC offer
     signalingService.current.on('webrtc-offer', async (message) => {
       try {
         if (!webrtcManager.current) return;
-        
+
         const answer = await webrtcManager.current.processOffer(message.data);
-        
+
         // Send answer back
         await signalingService.current?.sendMessage('webrtc-answer', answer, message.sender);
       } catch (error) {
         console.error('Error processing offer:', error);
       }
     });
-    
+
     // Handle WebRTC answer
     signalingService.current.on('webrtc-answer', async (message) => {
       try {
         if (!webrtcManager.current) return;
-        
+
         await webrtcManager.current.processAnswer(message.data);
       } catch (error) {
         console.error('Error processing answer:', error);
       }
     });
-    
+
     // Handle ICE candidates
     signalingService.current.on('ice-candidate', async (message) => {
       try {
         if (!webrtcManager.current) return;
-        
+
         await webrtcManager.current.addIceCandidate(message.data);
       } catch (error) {
         console.error('Error adding ICE candidate:', error);
       }
     });
-    
+
     // Handle user joined event
     signalingService.current.on('user-joined', async (message) => {
       try {
         if (!webrtcManager.current) return;
-        
+
         // Create and send offer to the new user
         const offer = await webrtcManager.current.createOffer();
         await signalingService.current?.sendMessage('webrtc-offer', offer, message.sender);
@@ -377,55 +383,55 @@ export default function RoomScreen() {
         console.error('Error creating offer:', error);
       }
     });
-    
+
     // Handle user left event
     signalingService.current.on('user-left', (message) => {
-      setRemoteStreams(prev => {
+      setRemoteStreams((prev) => {
         const newStreams = new Map(prev);
         // Remove streams from the user who left
         // In a real implementation, we would have a mapping of userId to peerId
         return newStreams;
       });
     });
-    
+
     // Setup ICE candidate handler
     webrtcManager.current.setOnIceCandidate(async (candidate) => {
       await signalingService.current?.sendMessage('ice-candidate', candidate);
     });
   };
-  
+
   // Handle send chat message
   const handleSendMessage = (content: string) => {
     if (!chatManager.current) return;
-    
+
     chatManager.current.sendMessage(content);
   };
-  
+
   // Handle toggle audio
   const handleToggleAudio = () => {
     if (!mediaManager.current) return;
-    
+
     const newState = mediaManager.current.toggleAudio();
     setAudioEnabled(newState);
   };
-  
+
   // Handle toggle video
   const handleToggleVideo = () => {
     if (!mediaManager.current) return;
-    
+
     const newState = mediaManager.current.toggleVideo();
     setVideoEnabled(newState);
   };
-  
+
   // Handle screen sharing
   const handleShareScreen = async () => {
     if (!mediaManager.current || !webrtcManager.current) return;
-    
+
     if (isScreenSharing) {
       // Stop screen sharing
       setIsScreenSharing(false);
       setScreenShareStream(null);
-      
+
       // TODO: In a complete implementation, we would need to:
       // 1. Stop the screen share track
       // 2. Remove it from the peer connection
@@ -437,7 +443,7 @@ export default function RoomScreen() {
         if (stream) {
           setScreenShareStream(stream);
           setIsScreenSharing(true);
-          
+
           // TODO: In a complete implementation, we would need to:
           // 1. Add the screen share track to the peer connection
           // 2. Renegotiate with peers
@@ -448,23 +454,30 @@ export default function RoomScreen() {
       }
     }
   };
-  
+
   // Handle device selection
-  const handleDeviceSelection = async (audioDevice: string, videoDevice: string, audioOutputDevice: string) => {
+  const handleDeviceSelection = async (
+    audioDevice: string,
+    videoDevice: string,
+    audioOutputDevice: string
+  ) => {
     if (!mediaManager.current) return;
-    
+
     // Change audio input device
     if (audioDevice && audioDevice !== mediaManager.current.getCurrentAudioDevice()) {
       await mediaManager.current.switchAudioDevice(audioDevice);
     }
-    
+
     // Change video input device
     if (videoDevice && videoDevice !== mediaManager.current.getCurrentVideoDevice()) {
       await mediaManager.current.switchVideoDevice(videoDevice);
     }
-    
+
     // Change audio output device (if supported)
-    if (audioOutputDevice && audioOutputDevice !== mediaManager.current.getCurrentAudioOutputDevice()) {
+    if (
+      audioOutputDevice &&
+      audioOutputDevice !== mediaManager.current.getCurrentAudioOutputDevice()
+    ) {
       // Find all video elements to apply output device change
       // This is simplified - in a real implementation we would need to handle this differently
       const videoElements = document.querySelectorAll('video');
@@ -472,78 +485,76 @@ export default function RoomScreen() {
         await mediaManager.current.switchAudioOutputDevice(audioOutputDevice, element);
       }
     }
-    
+
     // Update local stream reference
     if (mediaManager.current) {
       setLocalStream(mediaManager.current.getStream());
     }
   };
-  
+
   // Handle room leave
   const handleLeaveRoom = async () => {
     await cleanup();
     router.replace('/');
   };
-  
+
   // Cleanup resources
   const cleanup = async () => {
     // Leave room via signaling
     if (signalingService.current) {
       await signalingService.current.leaveRoom();
     }
-    
+
     // Close WebRTC connections
     if (webrtcManager.current) {
       webrtcManager.current.close();
     }
-    
+
     // Close chat
     if (chatManager.current) {
       chatManager.current.close();
     }
-    
+
     // Stop media
     if (mediaManager.current) {
       mediaManager.current.stop();
     }
-    
+
     // Stop screen sharing
     if (screenShareStream) {
-      screenShareStream.getTracks().forEach(track => track.stop());
+      screenShareStream.getTracks().forEach((track) => track.stop());
       setScreenShareStream(null);
     }
   };
-  
+
   // Copy room ID to clipboard
   const copyRoomId = () => {
     Clipboard.setString(roomId as string);
     Alert.alert('Copied', 'Room ID copied to clipboard');
   };
-  
+
   // Render copy icon
-  const renderCopyIcon = (props?: IconProps) => (
-    <Icon {...props} name="copy-outline" />
-  );
+  const renderCopyIcon = (props?: IconProps) => <Icon {...props} name="copy-outline" />;
 
   // State for media error handling
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [skipMediaAccess, setSkipMediaAccess] = useState(false);
-  
+
   // Use effect to handle media errors
   useEffect(() => {
     if (mediaError && !skipMediaAccess) {
       // If there's a media error, offer to proceed without media
       Alert.alert(
-        "Media Access Error",
+        'Media Access Error',
         `${mediaError}\n\nWould you like to continue without camera/microphone access?`,
         [
           {
-            text: "No, go back",
-            style: "cancel",
-            onPress: () => router.replace('/')
+            text: 'No, go back',
+            style: 'cancel',
+            onPress: () => router.replace('/'),
           },
           {
-            text: "Yes, continue",
+            text: 'Yes, continue',
             onPress: () => {
               setSkipMediaAccess(true);
               setLoading(true);
@@ -551,25 +562,25 @@ export default function RoomScreen() {
               const initRoom = async () => {
                 try {
                   console.log('[Room] Retrying initialization without media');
-                  
+
                   // Get API provider
                   const provider = ApiProvider.getInstance();
                   const apiClient = provider.getApiClient();
-                  
+
                   if (!apiClient) {
                     throw new Error('API client not initialized');
                   }
-                  
+
                   // Skip media, Just initialize signaling
                   console.log('[Room] Initializing signaling service');
                   signalingService.current = new SignalingService(apiClient);
-                  
+
                   // Join room without media
                   console.log('[Room] Joining room without media:', roomId);
                   const newUserId = await signalingService.current.joinRoom(roomId as string);
                   setUserId(newUserId);
                   console.log('[Room] Joined room with user ID:', newUserId);
-                  
+
                   setConnected(true);
                   setLoading(false);
                   setError(null);
@@ -579,10 +590,10 @@ export default function RoomScreen() {
                   setLoading(false);
                 }
               };
-              
+
               initRoom();
-            }
-          }
+            },
+          },
         ]
       );
     }
@@ -594,12 +605,12 @@ export default function RoomScreen() {
         <Spinner size="large" />
         <Text style={styles.loadingText}>Joining room...</Text>
         <Text category="c1" appearance="hint" style={styles.loadingHint}>
-          This may take a moment. If you're not prompted for camera/microphone access,
-          your browser may have already blocked it or the prompt might be hidden.
+          This may take a moment. If you're not prompted for camera/microphone access, your browser
+          may have already blocked it or the prompt might be hidden.
         </Text>
-        
-        <Button 
-          style={styles.skipButton} 
+
+        <Button
+          style={styles.skipButton}
           appearance="outline"
           status="basic"
           onPress={() => {
@@ -608,26 +619,26 @@ export default function RoomScreen() {
             // Continue with initialization
             const provider = ApiProvider.getInstance();
             const apiClient = provider.getApiClient();
-            
+
             if (!apiClient) {
               setError('API client not initialized');
               setLoading(false);
               return;
             }
-            
+
             // Skip directly to room joining
             const initRoomWithoutMedia = async () => {
               try {
                 console.log('[Room] Manually initializing room without media');
-                
+
                 // Initialize signaling
                 signalingService.current = new SignalingService(apiClient);
-                
+
                 // Join room
                 console.log('[Room] Joining room:', roomId);
                 const newUserId = await signalingService.current.joinRoom(roomId as string);
                 setUserId(newUserId);
-                
+
                 setConnected(true);
                 setLoading(false);
               } catch (error) {
@@ -636,7 +647,7 @@ export default function RoomScreen() {
                 setLoading(false);
               }
             };
-            
+
             initRoomWithoutMedia();
           }}
         >
@@ -649,21 +660,23 @@ export default function RoomScreen() {
   if (error) {
     // Check if error is auth related
     const isAuthError = error.includes('sign in') || error.includes('authenticated');
-    
+
     return (
       <Layout style={styles.errorContainer}>
-        <Text category="h5" status="danger">Error</Text>
+        <Text category="h5" status="danger">
+          Error
+        </Text>
         <Text style={styles.errorText}>{error}</Text>
-        
+
         {isAuthError ? (
           <View style={styles.authErrorContainer}>
             <Text appearance="hint" style={styles.authErrorText}>
               You need to sign in to use this application.
             </Text>
-            
+
             <View style={styles.loginButtonContainer}>
-              <Button 
-                appearance="outline" 
+              <Button
+                appearance="outline"
                 status="primary"
                 onPress={() => router.replace('/')}
                 style={styles.errorButton}
@@ -673,10 +686,7 @@ export default function RoomScreen() {
             </View>
           </View>
         ) : (
-          <Button 
-            onPress={() => router.replace('/')} 
-            style={styles.errorButton}
-          >
+          <Button onPress={() => router.replace('/')} style={styles.errorButton}>
             Go Back
           </Button>
         )}
@@ -685,9 +695,7 @@ export default function RoomScreen() {
   }
 
   // Render chat toggle icon
-  const renderChatIcon = (props?: IconProps) => (
-    <Icon {...props} name="message-circle-outline" />
-  );
+  const renderChatIcon = (props?: IconProps) => <Icon {...props} name="message-circle-outline" />;
 
   return (
     <Layout style={styles.container}>
@@ -699,7 +707,7 @@ export default function RoomScreen() {
             appearance="ghost"
             accessoryLeft={renderChatIcon}
             onPress={() => setIsChatVisible(!isChatVisible)}
-            status={isChatVisible ? "primary" : "basic"}
+            status={isChatVisible ? 'primary' : 'basic'}
           />
           <Button
             size="small"
@@ -709,10 +717,12 @@ export default function RoomScreen() {
           />
         </View>
       </View>
-      
+
       {skipMediaAccess ? (
         <View style={styles.noMediaContainer}>
-          <Text category="h6" style={styles.noMediaTitle}>Media access is disabled</Text>
+          <Text category="h6" style={styles.noMediaTitle}>
+            Media access is disabled
+          </Text>
           <Text appearance="hint" style={styles.noMediaText}>
             You're in view-only mode without camera or microphone access.
           </Text>
@@ -741,7 +751,7 @@ export default function RoomScreen() {
                 />
               </View>
             )}
-            
+
             <View style={styles.gridContainer}>
               <VideoGrid
                 localStream={localStream}
@@ -750,7 +760,7 @@ export default function RoomScreen() {
               />
             </View>
           </View>
-          
+
           <MediaControls
             audioEnabled={audioEnabled}
             videoEnabled={videoEnabled}
@@ -761,7 +771,7 @@ export default function RoomScreen() {
             onLeaveRoom={handleLeaveRoom}
             isScreenSharing={isScreenSharing}
           />
-          
+
           <DeviceSettings
             visible={showSettings}
             onClose={() => setShowSettings(false)}
@@ -775,13 +785,9 @@ export default function RoomScreen() {
           />
         </>
       )}
-      
+
       <View style={styles.leaveContainer}>
-        <Button 
-          status="danger" 
-          appearance="outline"
-          onPress={handleLeaveRoom}
-        >
+        <Button status="danger" appearance="outline" onPress={handleLeaveRoom}>
           Leave Room
         </Button>
       </View>

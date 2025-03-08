@@ -1,12 +1,12 @@
-import React, { useState } from "react";
-import { StyleSheet, View, Alert, Platform } from "react-native";
-import { Card, Text, Input, Button, Divider, Spinner, Layout } from "@ui-kitten/components";
-import { useRouter } from "expo-router";
-import { ApiProvider } from "../api/ApiProvider";
-import { Login } from "../components/Login";
+import React, { useState } from 'react';
+import { StyleSheet, View, Alert, Platform } from 'react-native';
+import { Card, Text, Input, Button, Divider, Spinner, Layout } from '@ui-kitten/components';
+import { useRouter } from 'expo-router';
+import { ApiProvider } from '../api/ApiProvider';
+import { Login } from '../components/Login';
 
 export default function HomeScreen() {
-  const [roomId, setRoomId] = useState("");
+  const [roomId, setRoomId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,13 +19,13 @@ export default function HomeScreen() {
       try {
         const provider = ApiProvider.getInstance();
         const apiClient = provider.getApiClient();
-        
+
         if (!apiClient) {
           console.error('[Home] API client not initialized');
           setError('Failed to connect to authentication service. Please refresh the page.');
           return;
         }
-        
+
         if (apiClient.getCurrentUser && apiClient.isSignedIn) {
           const isSignedIn = apiClient.isSignedIn();
           console.log('[Home] Initial auth check:', isSignedIn ? 'Signed in' : 'Not signed in');
@@ -35,7 +35,7 @@ export default function HomeScreen() {
         console.error('[Home] Error checking auth state:', error);
       }
     };
-    
+
     checkAuthState();
   }, []);
 
@@ -47,19 +47,18 @@ export default function HomeScreen() {
     try {
       const provider = ApiProvider.getInstance();
       const apiClient = provider.getApiClient();
-      
+
       if (!apiClient) {
         throw new Error('API client not initialized');
       }
-      
+
       const result = await apiClient.createRoom();
-      
+
       // Navigate to room screen with room ID
       router.push({
-        pathname: "/room/[id]",
-        params: { id: result.roomId }
+        pathname: '/room/[id]',
+        params: { id: result.roomId },
       });
-      
     } catch (error) {
       console.error('Error creating room:', error);
       setError('Failed to create room. Please try again.');
@@ -74,11 +73,11 @@ export default function HomeScreen() {
       setError('Please enter a room ID');
       return;
     }
-    
+
     // Navigate to room screen with provided room ID
     router.push({
-      pathname: "/room/[id]",
-      params: { id: roomId.trim() }
+      pathname: '/room/[id]',
+      params: { id: roomId.trim() },
     });
   };
 
@@ -90,15 +89,19 @@ export default function HomeScreen() {
         <Text category="h4">WebRTC Video Chat</Text>
       </View>
       <View style={styles.content}>
-        <Login onLoginStateChange={(loggedIn) => {
-          console.log("Login state changed:", loggedIn);
-          setIsLoggedIn(loggedIn);
-        }} />
-        
+        <Login
+          onLoginStateChange={(loggedIn) => {
+            console.log('Login state changed:', loggedIn);
+            setIsLoggedIn(loggedIn);
+          }}
+        />
+
         {isLoggedIn ? (
           <>
-            <Text category="h1" style={styles.title}>Create or Join Room</Text>
-            
+            <Text category="h1" style={styles.title}>
+              Create or Join Room
+            </Text>
+
             <Card style={styles.card}>
               <Button
                 appearance="filled"
@@ -109,13 +112,15 @@ export default function HomeScreen() {
               >
                 Create New Room
               </Button>
-              
+
               <View style={styles.dividerContainer}>
                 <Divider style={styles.divider} />
-                <Text appearance="hint" style={styles.orText}>OR</Text>
+                <Text appearance="hint" style={styles.orText}>
+                  OR
+                </Text>
                 <Divider style={styles.divider} />
               </View>
-              
+
               <Input
                 placeholder="Enter Room ID"
                 value={roomId}
@@ -124,7 +129,7 @@ export default function HomeScreen() {
                 autoCapitalize="none"
                 disabled={loading}
               />
-              
+
               <Button
                 style={styles.joinButton}
                 onPress={handleJoinRoom}
@@ -132,7 +137,7 @@ export default function HomeScreen() {
               >
                 Join Room
               </Button>
-              
+
               {error && (
                 <Text status="danger" style={styles.errorText}>
                   {error}
@@ -142,7 +147,9 @@ export default function HomeScreen() {
           </>
         ) : (
           <Card style={styles.loginRequiredCard}>
-            <Text category="h6" style={styles.loginRequiredTitle}>Sign In Required</Text>
+            <Text category="h6" style={styles.loginRequiredTitle}>
+              Sign In Required
+            </Text>
             <Text appearance="hint" style={styles.loginRequiredText}>
               Please sign in with your Google account to create or join video chat rooms.
             </Text>
@@ -156,62 +163,62 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f9fc",
+    backgroundColor: '#f7f9fc',
     paddingTop: 40, // Safe area for status bar
   },
   header: {
     padding: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
+    borderBottomColor: '#EEEEEE',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
     padding: 20,
-    justifyContent: "center",
+    justifyContent: 'center',
     maxWidth: 600,
-    width: "100%",
-    alignSelf: "center"
+    width: '100%',
+    alignSelf: 'center',
   },
   title: {
-    textAlign: "center",
-    marginBottom: 30
+    textAlign: 'center',
+    marginBottom: 30,
   },
   card: {
-    marginBottom: 20
+    marginBottom: 20,
   },
   dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
   },
   divider: {
-    flex: 1
+    flex: 1,
   },
   orText: {
-    marginHorizontal: 10
+    marginHorizontal: 10,
   },
   input: {
-    marginBottom: 15
+    marginBottom: 15,
   },
   joinButton: {
-    marginBottom: 10
+    marginBottom: 10,
   },
   errorText: {
     marginTop: 10,
-    textAlign: "center"
+    textAlign: 'center',
   },
   loginRequiredCard: {
-    marginTop: 20
+    marginTop: 20,
   },
   loginRequiredTitle: {
     marginBottom: 10,
-    textAlign: "center"
+    textAlign: 'center',
   },
   loginRequiredText: {
-    textAlign: "center"
-  }
+    textAlign: 'center',
+  },
 });

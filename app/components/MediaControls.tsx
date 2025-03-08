@@ -40,42 +40,30 @@ export const MediaControls: React.FC<MediaControlsProps> = ({
     <Icon {...props} name={isScreenSharing ? 'monitor-off-outline' : 'monitor-outline'} />
   );
 
-  const renderSettingsIcon = (props?: IconProps) => (
-    <Icon {...props} name="settings-outline" />
-  );
+  const renderSettingsIcon = (props?: IconProps) => <Icon {...props} name="settings-outline" />;
 
-  const renderLeaveIcon = (props?: IconProps) => (
-    <Icon {...props} name="log-out-outline" />
-  );
+  const renderLeaveIcon = (props?: IconProps) => <Icon {...props} name="log-out-outline" />;
 
   return (
     <View style={styles.container}>
       <ButtonGroup style={styles.buttonGroup} appearance="filled">
-        <Button 
+        <Button
           status={audioEnabled ? 'primary' : 'basic'}
           accessoryLeft={renderMicIcon}
           onPress={onToggleAudio}
         />
-        <Button 
+        <Button
           status={videoEnabled ? 'primary' : 'basic'}
           accessoryLeft={renderVideoIcon}
           onPress={onToggleVideo}
         />
-        <Button 
+        <Button
           status={isScreenSharing ? 'warning' : 'basic'}
           accessoryLeft={renderScreenShareIcon}
           onPress={onShareScreen}
         />
-        <Button 
-          status="basic"
-          accessoryLeft={renderSettingsIcon}
-          onPress={onOpenSettings}
-        />
-        <Button 
-          status="danger"
-          accessoryLeft={renderLeaveIcon}
-          onPress={onLeaveRoom}
-        />
+        <Button status="basic" accessoryLeft={renderSettingsIcon} onPress={onOpenSettings} />
+        <Button status="danger" accessoryLeft={renderLeaveIcon} onPress={onLeaveRoom} />
       </ButtonGroup>
     </View>
   );

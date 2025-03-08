@@ -22,7 +22,7 @@ export const theme = {
   'color-danger-700': '#9B2C2C', // red-800
   'color-danger-800': '#822727', // red-900
   'color-danger-900': '#63171B', // red-950
-  
+
   'color-basic-100': '#FFFFFF', // white
   'color-basic-200': '#F7FAFC', // gray-50
   'color-basic-300': '#EDF2F7', // gray-100
@@ -39,7 +39,7 @@ export const theme = {
   'text-basic-color': '#1A202C', // gray-800
   'text-hint-color': '#718096', // gray-500
   'text-disabled-color': '#A0AEC0', // gray-400
-  
+
   // Background colors
   'background-basic-color-1': '#FFFFFF', // white
   'background-basic-color-2': '#F7FAFC', // gray-50
@@ -59,7 +59,7 @@ export const theme = {
   'button-outline-color': '#3182CE', // blue-600
   'button-outline-active-color': '#2B6CB0', // blue-700
   'button-outline-border-color': '#3182CE', // blue-600
-  
+
   // Form controls
   'input-border-color': '#CBD5E0', // gray-300
   'input-background-color': '#FFFFFF', // white

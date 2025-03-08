@@ -34,30 +34,30 @@ export class WebRTCManager {
    */
   public async initialize(localStream: MediaStream): Promise<void> {
     this.localStream = localStream;
-    
+
     // Create peer connection
     this.peerConnection = new RTCPeerConnection(this.peerConfig);
-    
+
     // Add all local tracks to the peer connection
     if (localStream) {
-      localStream.getTracks().forEach(track => {
+      localStream.getTracks().forEach((track) => {
         this.peerConnection?.addTrack(track, localStream);
       });
     }
-    
+
     // Set up event handlers
     this.peerConnection.onicecandidate = (event) => {
       if (event.candidate && this.onIceCandidateCallback) {
         this.onIceCandidateCallback(event.candidate);
       }
     };
-    
+
     this.peerConnection.onnegotiationneeded = () => {
       if (this.onNegotiationNeededCallback) {
         this.onNegotiationNeededCallback();
       }
     };
-    
+
     this.peerConnection.ontrack = (event) => {
       if (this.onTrackCallback) {
         const stream = event.streams[0];
@@ -66,7 +66,7 @@ export class WebRTCManager {
         this.onTrackCallback(stream, peerId);
       }
     };
-    
+
     this.peerConnection.ondatachannel = (event) => {
       this.dataChannel = event.channel;
       if (this.onDataChannelCallback) {
@@ -83,7 +83,7 @@ export class WebRTCManager {
       console.error('Peer connection not initialized');
       return null;
     }
-    
+
     this.dataChannel = this.peerConnection.createDataChannel(label);
     return this.dataChannel;
   }
@@ -95,7 +95,7 @@ export class WebRTCManager {
     if (!this.peerConnection) {
       throw new Error('Peer connection not initialized');
     }
-    
+
     const offer = await this.peerConnection.createOffer();
     await this.peerConnection.setLocalDescription(offer);
     return offer;
@@ -108,7 +108,7 @@ export class WebRTCManager {
     if (!this.peerConnection) {
       throw new Error('Peer connection not initialized');
     }
-    
+
     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
     const answer = await this.peerConnection.createAnswer();
     await this.peerConnection.setLocalDescription(answer);
@@ -122,7 +122,7 @@ export class WebRTCManager {
     if (!this.peerConnection) {
       throw new Error('Peer connection not initialized');
     }
-    
+
     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
   }
 
@@ -133,7 +133,7 @@ export class WebRTCManager {
     if (!this.peerConnection) {
       throw new Error('Peer connection not initialized');
     }
-    
+
     await this.peerConnection.addIceCandidate(candidate);
   }
 
@@ -159,12 +159,12 @@ export class WebRTCManager {
       this.peerConnection.close();
       this.peerConnection = null;
     }
-    
+
     if (this.localStream) {
-      this.localStream.getTracks().forEach(track => track.stop());
+      this.localStream.getTracks().forEach((track) => track.stop());
       this.localStream = null;
     }
-    
+
     this.remoteStreams.clear();
     this.dataChannel = null;
   }
