@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "WebRTC Video Chat Application using Expo",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "postinstall": "cd app && npm install",

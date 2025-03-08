@@ -25,8 +25,8 @@ This repository uses a monorepo structure:
 
 ### Prerequisites
 
-- Node.js 18+ (a `.nvmrc` file is included for NVM users)
-- npm or yarn
+- Node.js 20+ (a `.nvmrc` file is included for NVM users)
+- npm 10+ or yarn
 - Expo CLI
 
 ### Installation
@@ -89,10 +89,22 @@ npm run lint:fix
 npm run format
 ```
 
-### Cleanup
+### Building
 
 ```bash
+# Build the web version
+npm run build:web
+
+# Clean up build artifacts
 npm run clean
+```
+
+## Deployment
+
+The application is automatically deployed to GitHub Pages when changes are merged to the `main` branch. The live version can be accessed at:
+
+```
+https://[your-username].github.io/[repo-name]/
 ```
 
 ## App Structure
@@ -117,6 +129,13 @@ npm run clean
   - `MockApiClient.ts` - Mock implementation
   - `ApiProvider.ts` - API provider/selector
 - `app/theme/` - UI Kitten theme configuration
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **Expo App Tests**: Runs on every push and pull request to verify the app works correctly
+- **Deploy Expo Web App**: Automatically deploys the web version to GitHub Pages when merged to main
 
 ## Architecture
 

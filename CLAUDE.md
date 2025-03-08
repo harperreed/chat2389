@@ -24,6 +24,10 @@
 - `npm run lint:fix` - Auto-fix linting issues where possible
 - `npm run typecheck` - Run TypeScript type checking
 
+## CI/CD Workflows
+- **Expo App Tests** - Runs on every push and PR to test the application
+- **Deploy Expo Web App** - Deploys the web version to GitHub Pages when merged to main
+
 ## Code Style Guidelines
 
 ### TypeScript/JavaScript
@@ -60,3 +64,8 @@
 6. Run linting and type checking: `npm run lint && npm run typecheck`
 7. Format code: `npm run format`
 8. Commit changes and push to the repository
+
+## Environment Requirements
+- Node.js 20+ (a `.nvmrc` file is included for NVM users)
+- npm 10+ or yarn
+- Expo CLI

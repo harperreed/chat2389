@@ -11,19 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 18.x
+        node-version: 20.x
         cache: 'npm'
     
     - name: Install Root Dependencies
       run: npm install
-      
-    - name: Install App Dependencies
-      run: cd app && npm install
       
     - name: Run Linting
       run: npm run lint
@@ -35,26 +32,23 @@ jobs:
       run: npm test
       
     - name: Build Expo Web
-      run: cd app && npx expo export:web
+      run: npm run build:web
 
   e2e:
     runs-on: ubuntu-latest
     needs: test
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 18.x
+        node-version: 20.x
         cache: 'npm'
     
     - name: Install Root Dependencies
       run: npm install
-      
-    - name: Install App Dependencies
-      run: cd app && npm install
       
     - name: Install Playwright
       run: npx playwright install --with-deps
