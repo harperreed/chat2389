@@ -28,17 +28,36 @@ export class ChatManager {
   /**
    * Initialize chat with a data channel
    */
-  public initialize(isInitiator: boolean): void {
+  public async initialize(isInitiator: boolean): Promise<boolean> {
+    console.log('[Chat] Initializing chat, isInitiator:', isInitiator);
+    
     if (isInitiator) {
       // Create data channel as the initiator
+      console.log('[Chat] Creating data channel as initiator');
       this.dataChannel = this.webrtcManager.createDataChannel('chat');
+      
+      if (!this.dataChannel) {
+        console.error('[Chat] Failed to create data channel');
+        return false;
+      }
+      
       this.setupDataChannel();
+      
+      // Wait for the channel to be ready
+      const ready = await this.waitForChannelReady(15000);
+      console.log('[Chat] Data channel ready state after initialization:', ready);
+      return ready;
     } else {
       // Set up callback to receive the data channel
+      console.log('[Chat] Setting up callback to receive data channel');
       this.webrtcManager.setOnDataChannel((channel) => {
+        console.log('[Chat] Received data channel in callback');
         this.dataChannel = channel;
         this.setupDataChannel();
       });
+      
+      // Return true for non-initiators as they'll receive the channel later
+      return true;
     }
   }
 
@@ -46,10 +65,16 @@ export class ChatManager {
    * Set up data channel event handlers
    */
   private setupDataChannel(): void {
-    if (!this.dataChannel) return;
+    if (!this.dataChannel) {
+      console.error('[Chat] Cannot setup null data channel');
+      return;
+    }
+
+    console.log('[Chat] Setting up data channel handlers for channel:', this.dataChannel.label);
 
     this.dataChannel.onmessage = (event) => {
       try {
+        console.log('[Chat] Received message:', event.data.substring(0, 50) + (event.data.length > 50 ? '...' : ''));
         const data = JSON.parse(event.data);
         const message: ChatMessage = {
           id: data.id,
@@ -65,21 +90,24 @@ export class ChatManager {
           this.onMessageCallback(message);
         }
       } catch (error) {
-        console.error('Error parsing chat message:', error);
+        console.error('[Chat] Error parsing chat message:', error);
       }
     };
 
     this.dataChannel.onopen = () => {
-      console.log('Chat data channel opened');
+      console.log('[Chat] Data channel opened. Channel state:', this.dataChannel?.readyState);
     };
 
     this.dataChannel.onclose = () => {
-      console.log('Chat data channel closed');
+      console.log('[Chat] Data channel closed. Channel state:', this.dataChannel?.readyState);
     };
 
     this.dataChannel.onerror = (error) => {
-      console.error('Chat data channel error:', error);
+      console.error('[Chat] Data channel error:', error);
     };
+    
+    // Log the current state
+    console.log('[Chat] Data channel initial state:', this.dataChannel.readyState);
   }
 
   /**
@@ -152,7 +180,49 @@ export class ChatManager {
    * Check if data channel is open
    */
   public isReady(): boolean {
-    return this.dataChannel !== null && this.dataChannel.readyState === 'open';
+    const isChannelOpen = this.dataChannel !== null && this.dataChannel.readyState === 'open';
+    console.log('[Chat] Data channel ready state:', this.dataChannel?.readyState || 'null');
+    return isChannelOpen;
+  }
+  
+  /**
+   * Wait for data channel to open (with timeout)
+   */
+  public waitForChannelReady(timeoutMs: number = 10000): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (this.isReady()) {
+        console.log('[Chat] Data channel already open');
+        resolve(true);
+        return;
+      }
+      
+      console.log('[Chat] Waiting for data channel to open...');
+      
+      // Set a timeout to avoid waiting indefinitely
+      const timeout = setTimeout(() => {
+        console.log('[Chat] Timed out waiting for data channel to open');
+        resolve(false);
+      }, timeoutMs);
+      
+      // Check if we have a data channel to monitor
+      if (!this.dataChannel) {
+        console.log('[Chat] No data channel to monitor');
+        clearTimeout(timeout);
+        resolve(false);
+        return;
+      }
+      
+      // Create a one-time event handler for the open event
+      const openHandler = () => {
+        console.log('[Chat] Data channel opened while waiting');
+        clearTimeout(timeout);
+        this.dataChannel?.removeEventListener('open', openHandler);
+        resolve(true);
+      };
+      
+      // Add the event listener
+      this.dataChannel.addEventListener('open', openHandler);
+    });
   }
 
   /**

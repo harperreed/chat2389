@@ -11,6 +11,7 @@ export interface SignalingMessage {
   receiver?: string;
   roomId: string;
   data: any;
+  timestamp?: number;  // Add timestamp property
 }
 
 export class SignalingService {
@@ -151,32 +152,59 @@ export class SignalingService {
    * Poll for new messages
    */
   private async pollMessages(): Promise<void> {
-    if (!this.roomId || !this.userId) return;
+    if (!this.roomId || !this.userId) {
+      console.log('[Signaling] Cannot poll messages: not connected to a room');
+      return;
+    }
 
     try {
+      console.log('[Signaling] Polling for messages since:', new Date(this.lastMessageTime).toISOString());
       const messages = await this.apiClient.getSignals(this.roomId, this.lastMessageTime);
 
-      if (messages.length > 0) {
-        // Update last message time
-        this.lastMessageTime = Math.max(...messages.map((m) => m.timestamp || 0));
+      // Log the activity even if no messages
+      if (messages.length === 0) {
+        console.log('[Signaling] No new messages');
+        return;
+      }
+      
+      console.log(`[Signaling] Received ${messages.length} new messages`);
+      
+      // Get the latest timestamp from all messages
+      const timestamps = messages.map(m => m.timestamp || 0).filter(t => t > 0);
+      if (timestamps.length > 0) {
+        this.lastMessageTime = Math.max(...timestamps);
+        console.log('[Signaling] Updated lastMessageTime to:', new Date(this.lastMessageTime).toISOString());
+      }
 
-        // Process messages
-        messages.forEach((message) => {
-          // Skip messages sent by this user
-          if (message.sender === this.userId) return;
+      // Process messages
+      for (const message of messages) {
+        // Skip messages sent by this user
+        if (message.sender === this.userId) {
+          console.log('[Signaling] Skipping own message of type:', message.type);
+          continue;
+        }
 
-          // Skip messages not intended for this user
-          if (message.receiver && message.receiver !== this.userId) return;
+        // Skip messages not intended for this user
+        if (message.receiver && message.receiver !== this.userId) {
+          console.log('[Signaling] Skipping message intended for:', message.receiver);
+          continue;
+        }
 
-          // Handle the message
-          const handler = this.messageHandlers.get(message.type);
-          if (handler) {
+        // Handle the message
+        const handler = this.messageHandlers.get(message.type);
+        if (handler) {
+          console.log('[Signaling] Processing message of type:', message.type, 'from:', message.sender);
+          try {
             handler(message);
+          } catch (handlerError) {
+            console.error('[Signaling] Error in message handler for type:', message.type, handlerError);
           }
-        });
+        } else {
+          console.log('[Signaling] No handler for message type:', message.type);
+        }
       }
     } catch (error) {
-      console.error('Error polling messages:', error);
+      console.error('[Signaling] Error polling messages:', error);
     }
   }
 
