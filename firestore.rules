@@ -1,0 +1,39 @@
+rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      // Allow anyone to read/create rooms, but only if they're authenticated
+      match /rooms/{roomId} {
+        allow create: if request.auth != null;
+        allow read: if request.auth != null;
+
+        // Allow users to update/delete only rooms they created
+        allow update, delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+
+        // Users collection under a room
+        match /users/{userId} {
+          // Allow users to create/read/update their own user document
+          allow create, read: if request.auth != null;
+          // Only allow users to update their own document
+          allow update: if request.auth != null && userId == request.auth.uid;
+          // No one can delete user documents (maintains history)
+          allow delete: if false;
+        }
+
+        // Signals collection under a room
+        match /signals/{signalId} {
+          // Anyone authenticated can create signals and read all signals in a room
+          allow create, read: if request.auth != null;
+          // No updates to signals
+          allow update: if false;
+          // Only the sender can delete their signals
+          allow delete: if request.auth != null && resource.data.sender == request.auth.uid;
+        }
+      }
+
+      // User profiles (optional, for storing user preferences)
+      match /userProfiles/{userId} {
+        // Users can only read/write their own profile
+        allow read, write: if request.auth != null && userId == request.auth.uid;
+      }
+    }
+  }
