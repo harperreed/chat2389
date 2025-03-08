@@ -6,4 +6,4 @@
 - a landing page that allows a user to sign in.
 - limiting to 2389.ai domain name (in google, but configurable)
 - ability for a user to pop out their video chat
-- abiliaty for a third party to push an rtsp sctream into a room
+- abiliaty for a third party to push an rtsp stream into a room
