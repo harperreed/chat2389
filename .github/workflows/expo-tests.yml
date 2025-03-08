@@ -1,0 +1,63 @@
+name: Expo App Tests
+
+on:
+  push:
+    branches: [ main, expo ]
+  pull_request:
+    branches: [ main, expo ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Run Linting
+      run: npm run lint
+      
+    - name: Run TypeScript Type Checking
+      run: npm run typecheck
+      
+    - name: Run Tests
+      run: npm test
+      
+    - name: Build Expo Web
+      run: npx expo export:web
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        cache: 'npm'
+    
+    - name: Install Dependencies
+      run: npm ci
+      
+    - name: Install Playwright
+      run: npx playwright install --with-deps
+      
+    - name: Start Expo Web Server
+      run: npx expo start --web &
+      
+    - name: Wait for Server
+      run: sleep 30
+      
+    - name: Run E2E Tests
+      run: npm run test:e2e

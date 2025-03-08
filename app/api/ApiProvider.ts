@@ -4,7 +4,6 @@
 
 import { ApiInterface } from './ApiInterface';
 import { FirebaseApiClient } from './FirebaseApiClient';
-import { MockApiClient } from './MockApiClient';
 import { config } from './config';
 
 // We only support Firebase
