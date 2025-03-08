@@ -19,28 +19,53 @@ export const Login: React.FC<LoginProps> = ({ onLoginStateChange }) => {
 
   // Check if user is already logged in
   useEffect(() => {
-    const apiProvider = ApiProvider.getInstance();
-    const apiClient = apiProvider.getApiClient();
+    console.log('[Login] Checking for existing authentication');
     
-    if (apiClient?.getCurrentUser) {
-      const currentUser = apiClient.getCurrentUser();
-      setUser(currentUser);
-      if (onLoginStateChange) {
-        onLoginStateChange(!!currentUser);
-      }
-    }
-    
-    // Set up auth state listener
-    if (apiClient?.onAuthStateChanged) {
-      const unsubscribe = apiClient.onAuthStateChanged((user) => {
-        setUser(user);
-        if (onLoginStateChange) {
-          onLoginStateChange(!!user);
-        }
-      });
+    const initializeAuth = async () => {
+      // Initialize the API provider first to ensure Firebase is connected
+      const apiProvider = ApiProvider.getInstance();
+      await apiProvider.initialize();
       
-      return () => unsubscribe();
-    }
+      const apiClient = apiProvider.getApiClient();
+      
+      if (!apiClient) {
+        console.error('[Login] API client not initialized');
+        return;
+      }
+      
+      console.log('[Login] API client initialized, checking auth state');
+      
+      // Check for current user
+      if (apiClient.getCurrentUser) {
+        const currentUser = apiClient.getCurrentUser();
+        console.log('[Login] Current user from direct check:', currentUser?.displayName || 'None');
+        
+        // Update state with current user (if any)
+        setUser(currentUser);
+        if (onLoginStateChange) {
+          onLoginStateChange(!!currentUser);
+        }
+      }
+      
+      // Set up auth state change listener
+      if (apiClient.onAuthStateChanged) {
+        console.log('[Login] Setting up auth state listener');
+        const unsubscribe = apiClient.onAuthStateChanged((user) => {
+          console.log('[Login] Auth state changed:', user?.displayName || 'Signed out');
+          setUser(user);
+          if (onLoginStateChange) {
+            onLoginStateChange(!!user);
+          }
+        });
+        
+        return () => {
+          console.log('[Login] Cleaning up auth state listener');
+          unsubscribe();
+        };
+      }
+    };
+    
+    initializeAuth();
   }, []);
 
   const handleSignIn = async () => {

@@ -1,31 +1,42 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Clipboard, Alert } from "react-native";
+import { StyleSheet, View, Alert, Platform } from "react-native";
 import { Card, Text, Input, Button, Divider, Spinner, Layout } from "@ui-kitten/components";
 import { useRouter } from "expo-router";
 import { ApiProvider } from "../api/ApiProvider";
-import { BackendSelector } from "../api/BackendSelector";
 import { Login } from "../components/Login";
 
 export default function HomeScreen() {
   const [roomId, setRoomId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
-  // Initialize API provider with Firebase provider
-  const initializeApiProvider = async () => {
-    try {
-      const provider = ApiProvider.getInstance();
-      await provider.initialize('firebase');
-    } catch (error) {
-      console.error('Error initializing API provider:', error);
-      setError('Failed to initialize API provider. Please try again.');
-    }
-  };
-
-  // Initialize API on first render
+  // API is already initialized in _layout.tsx
+  // We just need to check for auth state on component mount
   React.useEffect(() => {
-    initializeApiProvider();
+    const checkAuthState = async () => {
+      try {
+        const provider = ApiProvider.getInstance();
+        const apiClient = provider.getApiClient();
+        
+        if (!apiClient) {
+          console.error('[Home] API client not initialized');
+          setError('Failed to connect to authentication service. Please refresh the page.');
+          return;
+        }
+        
+        if (apiClient.getCurrentUser && apiClient.isSignedIn) {
+          const isSignedIn = apiClient.isSignedIn();
+          console.log('[Home] Initial auth check:', isSignedIn ? 'Signed in' : 'Not signed in');
+          setIsLoggedIn(isSignedIn);
+        }
+      } catch (error) {
+        console.error('[Home] Error checking auth state:', error);
+      }
+    };
+    
+    checkAuthState();
   }, []);
 
   // Create a new room
@@ -71,10 +82,7 @@ export default function HomeScreen() {
     });
   };
 
-  // Handle API selection
-  const handleApiSelect = (apiType) => {
-    console.log(`Selected API: ${apiType}`);
-  };
+  // We only use Firebase as the backend
 
   return (
     <Layout style={styles.container}>
@@ -82,54 +90,64 @@ export default function HomeScreen() {
         <Text category="h4">WebRTC Video Chat</Text>
       </View>
       <View style={styles.content}>
-        <Text category="h1" style={styles.title}>Create or Join Room</Text>
-        
-        <Card style={styles.card}>
-          <Button
-            appearance="filled"
-            size="large"
-            onPress={handleCreateRoom}
-            disabled={loading}
-            accessoryRight={loading ? () => <Spinner size="small" /> : undefined}
-          >
-            Create New Room
-          </Button>
-          
-          <View style={styles.dividerContainer}>
-            <Divider style={styles.divider} />
-            <Text appearance="hint" style={styles.orText}>OR</Text>
-            <Divider style={styles.divider} />
-          </View>
-          
-          <Input
-            placeholder="Enter Room ID"
-            value={roomId}
-            onChangeText={setRoomId}
-            style={styles.input}
-            autoCapitalize="none"
-            disabled={loading}
-          />
-          
-          <Button
-            style={styles.joinButton}
-            onPress={handleJoinRoom}
-            disabled={loading || !roomId.trim()}
-          >
-            Join Room
-          </Button>
-          
-          {error && (
-            <Text status="danger" style={styles.errorText}>
-              {error}
-            </Text>
-          )}
-        </Card>
-        
-        <BackendSelector onSelect={handleApiSelect} />
-        
-        <Login onLoginStateChange={(isLoggedIn) => {
-          console.log("Login state changed:", isLoggedIn);
+        <Login onLoginStateChange={(loggedIn) => {
+          console.log("Login state changed:", loggedIn);
+          setIsLoggedIn(loggedIn);
         }} />
+        
+        {isLoggedIn ? (
+          <>
+            <Text category="h1" style={styles.title}>Create or Join Room</Text>
+            
+            <Card style={styles.card}>
+              <Button
+                appearance="filled"
+                size="large"
+                onPress={handleCreateRoom}
+                disabled={loading}
+                accessoryRight={loading ? () => <Spinner size="small" /> : undefined}
+              >
+                Create New Room
+              </Button>
+              
+              <View style={styles.dividerContainer}>
+                <Divider style={styles.divider} />
+                <Text appearance="hint" style={styles.orText}>OR</Text>
+                <Divider style={styles.divider} />
+              </View>
+              
+              <Input
+                placeholder="Enter Room ID"
+                value={roomId}
+                onChangeText={setRoomId}
+                style={styles.input}
+                autoCapitalize="none"
+                disabled={loading}
+              />
+              
+              <Button
+                style={styles.joinButton}
+                onPress={handleJoinRoom}
+                disabled={loading || !roomId.trim()}
+              >
+                Join Room
+              </Button>
+              
+              {error && (
+                <Text status="danger" style={styles.errorText}>
+                  {error}
+                </Text>
+              )}
+            </Card>
+          </>
+        ) : (
+          <Card style={styles.loginRequiredCard}>
+            <Text category="h6" style={styles.loginRequiredTitle}>Sign In Required</Text>
+            <Text appearance="hint" style={styles.loginRequiredText}>
+              Please sign in with your Google account to create or join video chat rooms.
+            </Text>
+          </Card>
+        )}
       </View>
     </Layout>
   );
@@ -184,6 +202,16 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: 10,
+    textAlign: "center"
+  },
+  loginRequiredCard: {
+    marginTop: 20
+  },
+  loginRequiredTitle: {
+    marginBottom: 10,
+    textAlign: "center"
+  },
+  loginRequiredText: {
     textAlign: "center"
   }
 });

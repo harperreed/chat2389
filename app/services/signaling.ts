@@ -31,18 +31,29 @@ export class SignalingService {
    */
   public async joinRoom(roomId: string): Promise<string> {
     try {
+      console.log('[Signaling] Joining room via API:', roomId);
+      
       // Join the room via API
       const result = await this.apiClient.joinRoom(roomId);
       this.roomId = roomId;
       this.userId = result.userId;
       
+      console.log('[Signaling] Room joined successfully, userId:', this.userId);
+      
       // Start polling for messages
+      console.log('[Signaling] Starting message polling');
       this.startPolling();
       
       return this.userId;
     } catch (error) {
-      console.error('Error joining room:', error);
-      throw error;
+      console.error('[Signaling] Error joining room:', error);
+      
+      // Provide more specific error information
+      if (error.message) {
+        throw new Error(`Signaling error: ${error.message}`);
+      } else {
+        throw new Error('Failed to join room via signaling service.');
+      }
     }
   }
 

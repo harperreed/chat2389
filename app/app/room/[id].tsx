@@ -25,6 +25,7 @@ export default function RoomScreen() {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // State for media controls
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -60,7 +61,48 @@ export default function RoomScreen() {
       return;
     }
     
+    // Check for authentication first
+    const checkAuth = async () => {
+      const provider = ApiProvider.getInstance();
+      const apiClient = provider.getApiClient();
+      
+      if (!apiClient) {
+        setError('API client not initialized');
+        setLoading(false);
+        return false;
+      }
+      
+      // Check if the user is authenticated
+      if (apiClient.getProviderName() === 'Firebase' && apiClient.getCurrentUser) {
+        const user = apiClient.getCurrentUser();
+        
+        if (!user) {
+          console.log('[Room] User not authenticated');
+          setError('Please sign in to join a room');
+          setLoading(false);
+          return false;
+        }
+        
+        console.log('[Room] User authenticated:', user.displayName);
+        setIsAuthenticated(true);
+        return true;
+      }
+      
+      // Fall back to allow if auth check not possible
+      return true;
+    };
+    
+    // Set a timeout to prevent indefinite loading, but with a longer duration
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.error('[Room] Room initialization timed out after 30 seconds');
+        setError('Room initialization timed out. Please try again or skip media access.');
+        setLoading(false);
+      }
+    }, 30000);
+    
     const initializeRoom = async () => {
+      console.log('[Room] PHASE 1: Starting initialization sequence');
       try {
         console.log('[Room] Starting room initialization');
         
@@ -80,38 +122,53 @@ export default function RoomScreen() {
           console.log('[Room] Current user:', user ? `${user.displayName} (${user.uid})` : 'Not signed in');
         }
         
-        // Initialize media
-        console.log('[Room] Initializing media');
-        mediaManager.current = new MediaManager();
-        const stream = await mediaManager.current.initialize({ video: true, audio: true });
-        setLocalStream(stream);
-        console.log('[Room] Media initialized, got stream:', stream ? 'yes' : 'no');
+        // Initialize media (if not skipping)
+        let stream = null;
+        if (!skipMediaAccess) {
+          try {
+            console.log('[Room] Initializing media');
+            mediaManager.current = new MediaManager();
+            stream = await mediaManager.current.initialize({ video: true, audio: true });
+            setLocalStream(stream);
+            console.log('[Room] Media initialized, got stream:', stream ? 'yes' : 'no');
+            
+            // Get device lists
+            console.log('[Room] Enumerating devices');
+            const devices = await mediaManager.current.enumerateDevices();
+            setAudioInputDevices(mediaManager.current.getAudioInputDevices());
+            setVideoInputDevices(mediaManager.current.getVideoInputDevices());
+            setAudioOutputDevices(mediaManager.current.getAudioOutputDevices());
+            console.log('[Room] Found devices:', 
+              'audio:', mediaManager.current.getAudioInputDevices().length,
+              'video:', mediaManager.current.getVideoInputDevices().length);
+            
+            // Initialize WebRTC
+            console.log('[Room] Initializing WebRTC');
+            webrtcManager.current = new WebRTCManager();
+            await webrtcManager.current.initialize(stream);
+            console.log('[Room] WebRTC initialized');
+          } catch (mediaError) {
+            console.error('[Room] Media access error:', mediaError);
+            // Store the error but don't throw it yet
+            setMediaError(mediaError.message || 'Failed to access camera/microphone');
+            // We'll let the useEffect handle this error
+            throw mediaError;
+          }
+        } else {
+          console.log('[Room] Skipping media initialization');
+        }
         
-        // Get device lists
-        console.log('[Room] Enumerating devices');
-        const devices = await mediaManager.current.enumerateDevices();
-        setAudioInputDevices(mediaManager.current.getAudioInputDevices());
-        setVideoInputDevices(mediaManager.current.getVideoInputDevices());
-        setAudioOutputDevices(mediaManager.current.getAudioOutputDevices());
-        console.log('[Room] Found devices:', 
-          'audio:', mediaManager.current.getAudioInputDevices().length,
-          'video:', mediaManager.current.getVideoInputDevices().length);
-        
-        // Initialize WebRTC
-        console.log('[Room] Initializing WebRTC');
-        webrtcManager.current = new WebRTCManager();
-        await webrtcManager.current.initialize(stream);
-        console.log('[Room] WebRTC initialized');
-        
-        // Setup WebRTC callbacks for handling remote streams
-        webrtcManager.current.setOnTrack((stream, peerId) => {
-          console.log('[Room] Received remote stream from peer:', peerId);
-          setRemoteStreams(prev => {
-            const newStreams = new Map(prev);
-            newStreams.set(peerId, stream);
-            return newStreams;
+        // Setup WebRTC callbacks if WebRTC is initialized
+        if (webrtcManager.current && !skipMediaAccess) {
+          webrtcManager.current.setOnTrack((stream, peerId) => {
+            console.log('[Room] Received remote stream from peer:', peerId);
+            setRemoteStreams(prev => {
+              const newStreams = new Map(prev);
+              newStreams.set(peerId, stream);
+              return newStreams;
+            });
           });
-        });
+        }
         
         // Initialize signaling
         console.log('[Room] Initializing signaling service');
@@ -123,16 +180,23 @@ export default function RoomScreen() {
         setUserId(newUserId);
         console.log('[Room] Joined room with user ID:', newUserId);
         
-        // Initialize chat manager
-        console.log('[Room] Initializing chat manager');
-        chatManager.current = new ChatManager(newUserId, webrtcManager.current);
-        chatManager.current.initialize(true); // Initialize as initiator
-        
-        // Setup chat message handler
-        chatManager.current.onMessage(message => {
-          console.log('[Room] Received chat message from:', message.sender);
-          setChatMessages(prev => [...prev, message]);
-        });
+        // Initialize chat manager if WebRTC is available
+        if (!skipMediaAccess && webrtcManager.current) {
+          console.log('[Room] Initializing chat manager');
+          chatManager.current = new ChatManager(newUserId, webrtcManager.current);
+          chatManager.current.initialize(true); // Initialize as initiator
+          
+          // Setup chat message handler
+          chatManager.current.onMessage(message => {
+            console.log('[Room] Received chat message from:', message.sender);
+            setChatMessages(prev => [...prev, message]);
+          });
+          
+          // Enable chat
+          setChatReady(true);
+        } else {
+          console.log('[Room] Skipping chat initialization (no WebRTC)');
+        }
         
         setChatReady(true);
         setConnected(true);
@@ -149,11 +213,112 @@ export default function RoomScreen() {
         setLoading(false);
       }
     };
+    // Check if getUserMedia is supported
+    const checkMediaSupport = async () => {
+      try {
+        console.log('[Room] Checking media support...');
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.error('[Room] getUserMedia not supported');
+          setSkipMediaAccess(true);
+          return false;
+        }
+        
+        console.log('[Room] Media devices API is available');
+        
+        // Quick test of permissions - just check if permissions are accessible
+        try {
+          console.log('[Room] Requesting permission status...');
+          // @ts-ignore - Permissions API may not be available in all browsers
+          if (navigator.permissions && navigator.permissions.query) {
+            // @ts-ignore
+            const cameraPermission = await navigator.permissions.query({ name: 'camera' });
+            console.log('[Room] Camera permission status:', cameraPermission.state);
+            
+            // @ts-ignore
+            const micPermission = await navigator.permissions.query({ name: 'microphone' });
+            console.log('[Room] Microphone permission status:', micPermission.state);
+            
+            // If both permissions are denied, skip media access
+            if (cameraPermission.state === 'denied' && micPermission.state === 'denied') {
+              console.log('[Room] Both camera and microphone permissions are denied');
+              setSkipMediaAccess(true);
+              return false;
+            }
+          } else {
+            console.log('[Room] Permissions API not available');
+          }
+        } catch (permErr) {
+          console.log('[Room] Error checking permissions:', permErr);
+          // Continue despite permission check error - we'll catch it later
+        }
+        
+        return true;
+      } catch (err) {
+        console.error('[Room] Error checking media support:', err);
+        setSkipMediaAccess(true);
+        return false;
+      }
+    };
     
-    initializeRoom();
+    // Run initialization sequence
+    const startInitialization = async () => {
+      // First check authentication
+      const isAuthed = await checkAuth();
+      if (!isAuthed) {
+        // If not authenticated, don't proceed
+        console.log('[Room] Authentication required');
+        setError('Please sign in to join this room');
+        setLoading(false);
+        return;
+      }
+      
+      // Then check media support
+      const hasMediaSupport = await checkMediaSupport();
+      console.log('[Room] Media support check result:', hasMediaSupport);
+      
+      if (!hasMediaSupport) {
+        console.log('[Room] Proceeding without media support');
+        setSkipMediaAccess(true);
+        
+        // Skip media initialization entirely
+        try {
+          console.log('[Room] Starting initialization without media');
+          const provider = ApiProvider.getInstance();
+          const apiClient = provider.getApiClient();
+          
+          if (!apiClient) {
+            throw new Error('API client not initialized');
+          }
+          
+          // Initialize signaling only
+          console.log('[Room] Initializing signaling service');
+          signalingService.current = new SignalingService(apiClient);
+          
+          // Join room without media
+          console.log('[Room] Joining room without media:', roomId);
+          const newUserId = await signalingService.current.joinRoom(roomId as string);
+          setUserId(newUserId);
+          console.log('[Room] Joined room with user ID:', newUserId);
+          
+          setConnected(true);
+          setLoading(false);
+        } catch (error) {
+          console.error('[Room] Error in no-media initialization:', error);
+          setError(`Failed to join room: ${error.message}`);
+          setLoading(false);
+        }
+        return; // Skip the regular initialization
+      }
+      
+      // Only try to initialize with media if we have support and permission
+      await initializeRoom();
+    };
+    
+    startInitialization();
     
     // Cleanup on unmount
     return () => {
+      clearTimeout(timeoutId);
       cleanup();
     };
   }, [roomId]);
@@ -358,21 +523,161 @@ export default function RoomScreen() {
     <Icon {...props} name="copy-outline" />
   );
 
+  // State for media error handling
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [skipMediaAccess, setSkipMediaAccess] = useState(false);
+  
+  // Use effect to handle media errors
+  useEffect(() => {
+    if (mediaError && !skipMediaAccess) {
+      // If there's a media error, offer to proceed without media
+      Alert.alert(
+        "Media Access Error",
+        `${mediaError}\n\nWould you like to continue without camera/microphone access?`,
+        [
+          {
+            text: "No, go back",
+            style: "cancel",
+            onPress: () => router.replace('/')
+          },
+          {
+            text: "Yes, continue",
+            onPress: () => {
+              setSkipMediaAccess(true);
+              setLoading(true);
+              // Re-trigger initialization with skipMediaAccess=true
+              const initRoom = async () => {
+                try {
+                  console.log('[Room] Retrying initialization without media');
+                  
+                  // Get API provider
+                  const provider = ApiProvider.getInstance();
+                  const apiClient = provider.getApiClient();
+                  
+                  if (!apiClient) {
+                    throw new Error('API client not initialized');
+                  }
+                  
+                  // Skip media, Just initialize signaling
+                  console.log('[Room] Initializing signaling service');
+                  signalingService.current = new SignalingService(apiClient);
+                  
+                  // Join room without media
+                  console.log('[Room] Joining room without media:', roomId);
+                  const newUserId = await signalingService.current.joinRoom(roomId as string);
+                  setUserId(newUserId);
+                  console.log('[Room] Joined room with user ID:', newUserId);
+                  
+                  setConnected(true);
+                  setLoading(false);
+                  setError(null);
+                } catch (err) {
+                  console.error('[Room] Error in retry initialization:', err);
+                  setError(`Failed to join room: ${err.message}`);
+                  setLoading(false);
+                }
+              };
+              
+              initRoom();
+            }
+          }
+        ]
+      );
+    }
+  }, [mediaError]);
+
   if (loading) {
     return (
       <Layout style={styles.loadingContainer}>
         <Spinner size="large" />
         <Text style={styles.loadingText}>Joining room...</Text>
+        <Text category="c1" appearance="hint" style={styles.loadingHint}>
+          This may take a moment. If you're not prompted for camera/microphone access,
+          your browser may have already blocked it or the prompt might be hidden.
+        </Text>
+        
+        <Button 
+          style={styles.skipButton} 
+          appearance="outline"
+          status="basic"
+          onPress={() => {
+            console.log('[Room] User manually skipped media access');
+            setSkipMediaAccess(true);
+            // Continue with initialization
+            const provider = ApiProvider.getInstance();
+            const apiClient = provider.getApiClient();
+            
+            if (!apiClient) {
+              setError('API client not initialized');
+              setLoading(false);
+              return;
+            }
+            
+            // Skip directly to room joining
+            const initRoomWithoutMedia = async () => {
+              try {
+                console.log('[Room] Manually initializing room without media');
+                
+                // Initialize signaling
+                signalingService.current = new SignalingService(apiClient);
+                
+                // Join room
+                console.log('[Room] Joining room:', roomId);
+                const newUserId = await signalingService.current.joinRoom(roomId as string);
+                setUserId(newUserId);
+                
+                setConnected(true);
+                setLoading(false);
+              } catch (error) {
+                console.error('[Room] Error in manual initialization:', error);
+                setError(`Failed to join room: ${error.message}`);
+                setLoading(false);
+              }
+            };
+            
+            initRoomWithoutMedia();
+          }}
+        >
+          Skip Media Access
+        </Button>
       </Layout>
     );
   }
 
   if (error) {
+    // Check if error is auth related
+    const isAuthError = error.includes('sign in') || error.includes('authenticated');
+    
     return (
       <Layout style={styles.errorContainer}>
         <Text category="h5" status="danger">Error</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <Button onPress={() => router.replace('/')}>Go Back</Button>
+        
+        {isAuthError ? (
+          <View style={styles.authErrorContainer}>
+            <Text appearance="hint" style={styles.authErrorText}>
+              You need to sign in to use this application.
+            </Text>
+            
+            <View style={styles.loginButtonContainer}>
+              <Button 
+                appearance="outline" 
+                status="primary"
+                onPress={() => router.replace('/')}
+                style={styles.errorButton}
+              >
+                Go to Login
+              </Button>
+            </View>
+          </View>
+        ) : (
+          <Button 
+            onPress={() => router.replace('/')} 
+            style={styles.errorButton}
+          >
+            Go Back
+          </Button>
+        )}
       </Layout>
     );
   }
@@ -389,42 +694,77 @@ export default function RoomScreen() {
         />
       </View>
       
-      <View style={styles.gridContainer}>
-        <VideoGrid
-          localStream={localStream}
-          remoteStreams={remoteStreams}
-          screenShareStream={screenShareStream}
-        />
+      {skipMediaAccess ? (
+        <View style={styles.noMediaContainer}>
+          <Text category="h6" style={styles.noMediaTitle}>Media access is disabled</Text>
+          <Text appearance="hint" style={styles.noMediaText}>
+            You're in view-only mode without camera or microphone access.
+          </Text>
+          <Text category="c1" style={styles.permissionInstructions}>
+            To enable camera and microphone access:
+          </Text>
+          <Text category="c1" style={styles.permissionStep}>
+            1. Click the camera icon in your browser's address bar
+          </Text>
+          <Text category="c1" style={styles.permissionStep}>
+            2. Select "Allow" for camera and microphone
+          </Text>
+          <Text category="c1" style={styles.permissionStep}>
+            3. Refresh this page
+          </Text>
+        </View>
+      ) : (
+        <>
+          <View style={styles.gridContainer}>
+            <VideoGrid
+              localStream={localStream}
+              remoteStreams={remoteStreams}
+              screenShareStream={screenShareStream}
+            />
+          </View>
+          
+          <MediaControls
+            audioEnabled={audioEnabled}
+            videoEnabled={videoEnabled}
+            onToggleAudio={handleToggleAudio}
+            onToggleVideo={handleToggleVideo}
+            onShareScreen={handleShareScreen}
+            onOpenSettings={() => setShowSettings(true)}
+            onLeaveRoom={handleLeaveRoom}
+            isScreenSharing={isScreenSharing}
+          />
+          
+          {chatManager.current && (
+            <ChatInterface
+              messages={chatMessages}
+              onSendMessage={handleSendMessage}
+              isReady={chatReady}
+            />
+          )}
+          
+          <DeviceSettings
+            visible={showSettings}
+            onClose={() => setShowSettings(false)}
+            onApply={handleDeviceSelection}
+            audioInputDevices={audioInputDevices}
+            videoInputDevices={videoInputDevices}
+            audioOutputDevices={audioOutputDevices}
+            currentAudioDevice={mediaManager.current?.getCurrentAudioDevice() || null}
+            currentVideoDevice={mediaManager.current?.getCurrentVideoDevice() || null}
+            currentAudioOutputDevice={mediaManager.current?.getCurrentAudioOutputDevice() || null}
+          />
+        </>
+      )}
+      
+      <View style={styles.leaveContainer}>
+        <Button 
+          status="danger" 
+          appearance="outline"
+          onPress={handleLeaveRoom}
+        >
+          Leave Room
+        </Button>
       </View>
-      
-      <MediaControls
-        audioEnabled={audioEnabled}
-        videoEnabled={videoEnabled}
-        onToggleAudio={handleToggleAudio}
-        onToggleVideo={handleToggleVideo}
-        onShareScreen={handleShareScreen}
-        onOpenSettings={() => setShowSettings(true)}
-        onLeaveRoom={handleLeaveRoom}
-        isScreenSharing={isScreenSharing}
-      />
-      
-      <ChatInterface
-        messages={chatMessages}
-        onSendMessage={handleSendMessage}
-        isReady={chatReady}
-      />
-      
-      <DeviceSettings
-        visible={showSettings}
-        onClose={() => setShowSettings(false)}
-        onApply={handleDeviceSelection}
-        audioInputDevices={audioInputDevices}
-        videoInputDevices={videoInputDevices}
-        audioOutputDevices={audioOutputDevices}
-        currentAudioDevice={mediaManager.current?.getCurrentAudioDevice() || null}
-        currentVideoDevice={mediaManager.current?.getCurrentVideoDevice() || null}
-        currentAudioOutputDevice={mediaManager.current?.getCurrentAudioOutputDevice() || null}
-      />
     </Layout>
   );
 }
@@ -441,6 +781,15 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
+    marginBottom: 16,
+  },
+  loadingHint: {
+    textAlign: 'center',
+    marginHorizontal: 30,
+    marginBottom: 20,
+  },
+  skipButton: {
+    marginTop: 10,
   },
   errorContainer: {
     flex: 1,
@@ -451,6 +800,20 @@ const styles = StyleSheet.create({
   errorText: {
     textAlign: 'center',
     marginVertical: 20,
+  },
+  authErrorContainer: {
+    marginTop: 5,
+  },
+  authErrorText: {
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  loginButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  errorButton: {
+    marginTop: 10,
   },
   gridContainer: {
     flex: 1,
@@ -471,5 +834,30 @@ const styles = StyleSheet.create({
   },
   roomIdText: {
     marginRight: 10,
+  },
+  noMediaContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noMediaTitle: {
+    marginBottom: 10,
+  },
+  noMediaText: {
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  permissionInstructions: {
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  permissionStep: {
+    marginLeft: 20,
+    marginBottom: 5,
+  },
+  leaveContainer: {
+    padding: 10,
+    alignItems: 'center',
   },
 });

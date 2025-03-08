@@ -3,9 +3,8 @@
  */
 
 import React, { useRef, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import { Text } from '@ui-kitten/components';
-import { WebView } from 'react-native-webview';
 
 interface VideoContainerProps {
   stream: MediaStream | null;
@@ -20,62 +19,62 @@ export const VideoContainer: React.FC<VideoContainerProps> = ({
   isLocal = false,
   isScreenShare = false,
 }) => {
-  const videoRef = useRef<WebView>(null);
+  // For web, we use a direct HTML video element
+  if (Platform.OS === 'web') {
+    return <WebVideoContainer 
+      stream={stream} 
+      label={label} 
+      isLocal={isLocal} 
+      isScreenShare={isScreenShare} 
+    />;
+  }
+  
+  // For native platforms, we would use a different approach
+  // but for this app we're focusing on web
+  return (
+    <View style={[styles.container, isScreenShare && styles.screenShare]}>
+      <View style={styles.placeholderVideo}>
+        <Text style={styles.placeholderText}>
+          Video not available on this platform
+        </Text>
+      </View>
+      <View style={styles.labelContainer}>
+        <Text style={styles.label}>{label || (isLocal ? 'You' : 'Peer')}</Text>
+      </View>
+    </View>
+  );
+};
+
+// Web-specific implementation using HTML video element
+const WebVideoContainer: React.FC<VideoContainerProps> = ({
+  stream,
+  label = '',
+  isLocal = false,
+  isScreenShare = false,
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    // When the stream changes, update the video element
     if (stream && videoRef.current) {
-      // This is a simplification - the actual implementation would need to handle
-      // the MediaStream to WebView communication which is platform-specific.
-      // For web, we can use a specialized component that can access the DOM directly.
-      
-      // On web, the following approach would work with a real HTML video element:
-      // if (videoRef.current) {
-      //   videoRef.current.srcObject = stream;
-      // }
+      videoRef.current.srcObject = stream;
     }
   }, [stream]);
 
-  // For web platform, using a technique to inject the webcam stream
-  // In a real implementation, we would use react-native-webrtc or a native module
-  // to handle video differently on each platform
-  const webviewContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body { margin: 0; padding: 0; overflow: hidden; background: #000; }
-        video { position: absolute; width: 100%; height: 100%; object-fit: cover; 
-          ${isLocal ? 'transform: scaleX(-1);' : ''} }
-      </style>
-    </head>
-    <body>
-      <video id="video" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
-      <script>
-        // In a real implementation, we would need to get the stream from the parent app
-        // This is a placeholder to demonstrate the UI
-        // In reality, this would receive the MediaStream via a message channel
-        
-        // For demo purposes only
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then(stream => {
-            document.getElementById('video').srcObject = stream;
-          })
-          .catch(err => console.error('Error accessing media devices.', err));
-      </script>
-    </body>
-    </html>
-  `;
-
   return (
     <View style={[styles.container, isScreenShare && styles.screenShare]}>
-      <WebView
+      <video
         ref={videoRef}
-        source={{ html: webviewContent }}
-        style={styles.video}
-        javaScriptEnabled={true}
-        allowsInlineMediaPlayback={true}
-        mediaPlaybackRequiresUserAction={false}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          transform: isLocal ? 'scaleX(-1)' : 'none',
+          backgroundColor: '#000',
+        }}
       />
       
       <View style={styles.labelContainer}>
@@ -96,9 +95,16 @@ const styles = StyleSheet.create({
   screenShare: {
     aspectRatio: 16/10,
   },
-  video: {
+  placeholderVideo: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    color: 'white',
+    textAlign: 'center',
+    padding: 20,
   },
   labelContainer: {
     position: 'absolute',

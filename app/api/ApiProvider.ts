@@ -7,8 +7,8 @@ import { FirebaseApiClient } from './FirebaseApiClient';
 import { MockApiClient } from './MockApiClient';
 import { config } from './config';
 
-// API client types
-export type ApiType = 'firebase' | 'pocketbase' | 'flask' | 'mock';
+// We only support Firebase
+export type ApiType = 'firebase';
 
 export class ApiProvider {
   private static instance: ApiProvider;
@@ -30,11 +30,11 @@ export class ApiProvider {
   }
   
   /**
-   * Initialize with the specified API type
+   * Initialize with Firebase (only supported option)
    */
-  public async initialize(type: ApiType): Promise<ApiInterface> {
+  public async initialize(type: ApiType = 'firebase'): Promise<ApiInterface> {
     // If we already have a client of this type, return it
-    if (this.apiClient && this.apiType === type) {
+    if (this.apiClient && this.apiType === 'firebase') {
       return this.apiClient;
     }
     
@@ -45,28 +45,12 @@ export class ApiProvider {
       this.apiType = null;
     }
     
-    // Create the new client
-    switch (type) {
-      case 'firebase':
-        this.apiClient = new FirebaseApiClient(config.firebase);
-        break;
-      // Uncomment these when they are implemented
-      // case 'pocketbase':
-      //   this.apiClient = new PocketBaseApiClient(config.pocketbase);
-      //   break;
-      // case 'flask':
-      //   this.apiClient = new FlaskApiClient(config.flask);
-      //   break;
-      case 'mock':
-        this.apiClient = new MockApiClient();
-        break;
-      default:
-        throw new Error(`Unknown API type: ${type}`);
-    }
+    // Create the Firebase client
+    this.apiClient = new FirebaseApiClient(config.firebase);
     
     // Connect to the API
     await this.apiClient.connect();
-    this.apiType = type;
+    this.apiType = 'firebase';
     
     return this.apiClient;
   }
@@ -75,6 +59,9 @@ export class ApiProvider {
    * Get the current API client
    */
   public getApiClient(): ApiInterface | null {
+    if (!this.apiClient) {
+      console.warn('[ApiProvider] No API client initialized. Call initialize() first.');
+    }
     return this.apiClient;
   }
   

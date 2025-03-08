@@ -28,26 +28,58 @@ export class MediaManager {
    */
   public async initialize(options: MediaOptions = { video: true, audio: true }): Promise<MediaStream> {
     try {
-      // Get user media with provided options
-      this.stream = await navigator.mediaDevices.getUserMedia(options);
+      console.log('[Media] Requesting media access with options:', JSON.stringify(options));
+      
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('[Media] getUserMedia is not supported in this browser');
+        throw new Error('Media devices not supported in this browser. Please try another browser.');
+      }
+      
+      // Try to get user media with provided options
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia(options);
+        console.log('[Media] Access granted to media devices');
+      } catch (mediaError) {
+        console.error('[Media] Error accessing media devices:', mediaError);
+        
+        // Try to be more specific about the error
+        if (mediaError.name === 'NotAllowedError' || mediaError.name === 'PermissionDeniedError') {
+          throw new Error('Camera/microphone access denied. Please allow access and try again.');
+        } else if (mediaError.name === 'NotFoundError' || mediaError.name === 'DevicesNotFoundError') {
+          throw new Error('No camera or microphone found. Please connect a device and try again.');
+        } else if (mediaError.name === 'NotReadableError' || mediaError.name === 'TrackStartError') {
+          throw new Error('Could not access camera/microphone. It may be in use by another application.');
+        } else {
+          throw new Error(`Media access error: ${mediaError.message || mediaError.name || 'Unknown error'}`);
+        }
+      }
       
       // Update current devices
+      console.log('[Media] Updating device information');
       if (this.stream.getVideoTracks().length > 0) {
         const videoTrack = this.stream.getVideoTracks()[0];
         this.currentVideoDevice = videoTrack.getSettings().deviceId || null;
+        console.log('[Media] Video track enabled:', videoTrack.enabled);
+      } else {
+        console.log('[Media] No video tracks available');
       }
       
       if (this.stream.getAudioTracks().length > 0) {
         const audioTrack = this.stream.getAudioTracks()[0];
         this.currentAudioDevice = audioTrack.getSettings().deviceId || null;
+        console.log('[Media] Audio track enabled:', audioTrack.enabled);
+      } else {
+        console.log('[Media] No audio tracks available');
       }
       
       // Enumerate available devices
       await this.enumerateDevices();
       
+      console.log('[Media] Media initialization complete');
       return this.stream;
     } catch (error) {
-      console.error('Error initializing media devices:', error);
+      console.error('[Media] Error in media initialization:', error);
       throw error;
     }
   }
