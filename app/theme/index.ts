@@ -66,4 +66,10 @@ export const theme: Partial<ThemeType> = {
   'input-border-color': '#CBD5E0', // gray-300
   'input-background-color': '#FFFFFF', // white
   'input-focus-border-color': '#3182CE', // blue-600
+  'select-border-color': '#CBD5E0', // gray-300
+  'select-background-color': '#FFFFFF', // white
+  'checkbox-border-color': '#CBD5E0', // gray-300
+  'checkbox-background-color': '#FFFFFF', // white
+  'radio-border-color': '#CBD5E0', // gray-300
+  'radio-background-color': '#FFFFFF', // white
 };
