@@ -19,8 +19,11 @@ jobs:
         node-version: 18.x
         cache: 'npm'
     
-    - name: Install Dependencies
-      run: npm ci
+    - name: Install Root Dependencies
+      run: npm install
+      
+    - name: Install App Dependencies
+      run: cd app && npm install
       
     - name: Run Linting
       run: npm run lint
@@ -32,7 +35,7 @@ jobs:
       run: npm test
       
     - name: Build Expo Web
-      run: npx expo export:web
+      run: cd app && npx expo export:web
 
   e2e:
     runs-on: ubuntu-latest
@@ -47,14 +50,17 @@ jobs:
         node-version: 18.x
         cache: 'npm'
     
-    - name: Install Dependencies
-      run: npm ci
+    - name: Install Root Dependencies
+      run: npm install
+      
+    - name: Install App Dependencies
+      run: cd app && npm install
       
     - name: Install Playwright
       run: npx playwright install --with-deps
       
     - name: Start Expo Web Server
-      run: npx expo start --web &
+      run: npm run web &
       
     - name: Wait for Server
       run: sleep 30

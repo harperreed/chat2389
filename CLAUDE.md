@@ -1,10 +1,16 @@
 # WebRTC Video Chat - Expo App Development Guide
 
+## Repository Structure
+- Root level: Project configuration and scripts that delegate to the Expo app
+- `/app`: The Expo application code
+
 ## Build Commands
 - `npm start` - Start Expo development server
 - `npm run web` - Start Expo for web
 - `npm run ios` - Start Expo for iOS
 - `npm run android` - Start Expo for Android
+- `npm run build:web` - Build Expo web version
+- `npm run clean` - Clean build artifacts and node_modules
 
 ## Test Commands
 - `npm test` - Run all tests
@@ -38,8 +44,19 @@
 - Use TypeScript interfaces for component props
 
 ### Project Structure
-- Main app in `/app` directory with Expo Router structure
+- Main app in `/app/app` directory with Expo Router structure
 - Components in `/app/components` directory
 - Services in `/app/services` directory
 - API clients in `/app/api` directory
 - Tests alongside their components with `.test.tsx` extension
+- Assets in `/app/assets` directory
+
+## Development Workflow
+1. Pull latest changes from the repository
+2. Install dependencies: `npm install`
+3. Run the appropriate command for your target platform
+4. Make changes and test locally
+5. Run tests: `npm test`
+6. Run linting and type checking: `npm run lint && npm run typecheck`
+7. Format code: `npm run format`
+8. Commit changes and push to the repository

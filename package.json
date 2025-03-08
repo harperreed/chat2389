@@ -2,7 +2,11 @@
   "name": "webrtc-video-chat-expo",
   "version": "1.0.0",
   "description": "WebRTC Video Chat Application using Expo",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
+    "postinstall": "cd app && npm install",
     "start": "cd app && expo start",
     "android": "cd app && expo start --android",
     "ios": "cd app && expo start --ios",
@@ -14,7 +18,9 @@
     "typecheck": "cd app && tsc --noEmit",
     "lint": "cd app && expo lint",
     "lint:fix": "cd app && expo lint --fix",
-    "format": "npx @biomejs/biome format --write ./app"
+    "format": "npx @biomejs/biome format --write ./app",
+    "build:web": "cd app && expo export:web",
+    "clean": "rm -rf node_modules && cd app && rm -rf node_modules .expo web-build dist"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4"

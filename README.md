@@ -14,11 +14,18 @@ A modern peer-to-peer video chat application built with Expo, React Native, and 
 - Mute audio and pause video controls
 - Copy room ID to invite others
 
+## Project Structure
+
+This repository uses a monorepo structure:
+
+- Root level: Project configuration and scripts that delegate to the Expo app
+- `/app`: The Expo application code
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v14 or later)
+- Node.js 18+ (a `.nvmrc` file is included for NVM users)
 - npm or yarn
 - Expo CLI
 
@@ -31,12 +38,9 @@ A modern peer-to-peer video chat application built with Expo, React Native, and 
    npm install
    ```
 
-### Configuration
+   This will install both the root dependencies and the Expo app dependencies.
 
-1. Firebase Configuration:
-   - Edit `app/api/config.ts` with your Firebase project credentials
-
-### Running the App
+### Development
 
 For web development:
 ```bash
@@ -53,50 +57,74 @@ For Android:
 npm run android
 ```
 
-## Project Structure
+### Testing
 
-- `app/` - Main Expo application
-  - `app/` - Main screens using Expo Router
-    - `index.tsx` - Home screen (create/join room)
-    - `room/[id].tsx` - Video chat room screen
-  - `components/` - UI components
-    - `VideoContainer.tsx` - Video display component
-    - `VideoGrid.tsx` - Grid layout for videos
-    - `ChatInterface.tsx` - Chat UI component
-    - `MediaControls.tsx` - Controls for audio/video
-    - `DeviceSettings.tsx` - Device selection modal
-  - `services/` - Core functionality
-    - `webrtc.ts` - WebRTC adapter
-    - `media.ts` - Media device management
-    - `chat.ts` - Chat data channel
-    - `signaling.ts` - Signaling service
-  - `api/` - Backend API clients
-    - `ApiInterface.ts` - Common interface
-    - `FirebaseApiClient.ts` - Firebase implementation
-    - `MockApiClient.ts` - Mock implementation
-    - `ApiProvider.ts` - API provider/selector
-  - `theme/` - UI Kitten theme configuration
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate test coverage
+npm run test:coverage
+
+# Run end-to-end tests
+npm run test:e2e
+```
+
+### Code Quality
+
+```bash
+# Type checking
+npm run typecheck
+
+# Linting
+npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
+
+# Format code
+npm run format
+```
+
+### Cleanup
+
+```bash
+npm run clean
+```
+
+## App Structure
+
+- `app/app/` - Main screens using Expo Router
+  - `index.tsx` - Home screen (create/join room)
+  - `room/[id].tsx` - Video chat room screen
+- `app/components/` - UI components
+  - `VideoContainer.tsx` - Video display component
+  - `VideoGrid.tsx` - Grid layout for videos
+  - `ChatInterface.tsx` - Chat UI component
+  - `MediaControls.tsx` - Controls for audio/video
+  - `DeviceSettings.tsx` - Device selection modal
+- `app/services/` - Core functionality
+  - `webrtc.ts` - WebRTC adapter
+  - `media.ts` - Media device management
+  - `chat.ts` - Chat data channel
+  - `signaling.ts` - Signaling service
+- `app/api/` - Backend API clients
+  - `ApiInterface.ts` - Common interface
+  - `FirebaseApiClient.ts` - Firebase implementation
+  - `MockApiClient.ts` - Mock implementation
+  - `ApiProvider.ts` - API provider/selector
+- `app/theme/` - UI Kitten theme configuration
 
 ## Architecture
 
 The application follows a modular architecture:
 
-1. **Services Layer** - Core WebRTC functionality:
-   - WebRTC connection management
-   - Media device access and control
-   - Signaling protocol
-   - Data channel communication
-
-2. **API Layer** - Backend communication:
-   - Room creation/joining
-   - Signaling message exchange
-   - Provider selection
-
-3. **UI Layer** - User interface components:
-   - Video display and layout
-   - Chat interface
-   - Media controls
-   - Settings and modals
+1. **Services Layer** - Core WebRTC functionality
+2. **API Layer** - Backend communication
+3. **UI Layer** - User interface components
 
 ## Backend Options
 

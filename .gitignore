@@ -1,40 +1,54 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-wheels/
-*.egg-info
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Virtual environments
-.venv
-venv/
-ENV/
-env/
-
-# Node.js
+# Node modules and npm
 node_modules/
 npm-debug.log
-package-lock.json
+yarn-error.log
+yarn.lock
 
-# Parcel
-.parcel-cache/
-public/
+# Expo
+.expo/
 dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-report/
+app/.expo/
 
-# Editors
+# Testing
+coverage/
+.jest/
+.nyc_output/
+
+# Production
+build/
+out/
+
+# TypeScript
+*.tsbuildinfo
+
+# IDE / Editors
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+.editorconfig
 
 # OS specific
 .DS_Store
 Thumbs.db
 
 # Project specific
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .aider*
 output.txt
+
+# Logs
+*.log
