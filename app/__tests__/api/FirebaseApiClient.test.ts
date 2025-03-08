@@ -82,7 +82,8 @@ describe('FirebaseApiClient', () => {
       expect.anything(), 
       expect.objectContaining({ 
         name: 'New Room',
-        createdBy: 'user123'
+        createdBy: 'user123',
+        createdAt: expect.any(Date)
       })
     );
     expect(result).toEqual({ id: 'doc123' });
