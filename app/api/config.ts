@@ -25,7 +25,7 @@ export const config: ApiConfig = {
     measurementId: "G-GWY7LFQ64B"
   },
   pocketbase: {
-    baseUrl: "http://localhost:8090"
+    baseUrl: "https://localhost:8090"
   },
   flask: {
     baseUrl: "http://localhost:5000"
