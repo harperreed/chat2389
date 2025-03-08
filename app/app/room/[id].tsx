@@ -96,11 +96,11 @@ export default function RoomScreen() {
     // Set a timeout to prevent indefinite loading, but with a longer duration
     const timeoutId = setTimeout(() => {
       if (loading) {
-        console.error('[Room] Room initialization timed out after 30 seconds');
+        console.error('[Room] Room initialization timed out after 60 seconds');
         setError('Room initialization timed out. Please try again or skip media access.');
         setLoading(false);
       }
-    }, 30000);
+    }, 60000); // Extended to 60 seconds to allow more time for WebRTC
 
     const initializeRoom = async () => {
       console.log('[Room] PHASE 1: Starting initialization sequence');
@@ -192,16 +192,32 @@ export default function RoomScreen() {
         if (!skipMediaAccess && webrtcManager.current) {
           console.log('[Room] Initializing chat manager');
           chatManager.current = new ChatManager(newUserId, webrtcManager.current);
-          chatManager.current.initialize(true); // Initialize as initiator
-
-          // Setup chat message handler
-          chatManager.current.onMessage((message) => {
-            console.log('[Room] Received chat message from:', message.sender);
-            setChatMessages((prev) => [...prev, message]);
-          });
-
-          // Enable chat
-          setChatReady(true);
+          
+          try {
+            // Initialize as initiator with async method
+            const chatInitialized = await chatManager.current.initialize(true);
+            console.log('[Room] Chat initialization result:', chatInitialized);
+            
+            // Setup chat message handler
+            chatManager.current.onMessage((message) => {
+              console.log('[Room] Received chat message from:', message.sender);
+              setChatMessages((prev) => [...prev, message]);
+            });
+            
+            // Enable chat based on initialization result
+            setChatReady(chatInitialized);
+            
+            // If chat couldn't be initialized but we have WebRTC, log warning but continue
+            if (!chatInitialized) {
+              console.warn('[Room] Chat data channel could not be established, but continuing with room');
+              // We'll still set ready to true so the timeout doesn't occur
+              setChatReady(true);
+            }
+          } catch (error) {
+            console.error('[Room] Error initializing chat:', error);
+            // Still set chatReady to true so the timeout doesn't occur
+            setChatReady(true);
+          }
         } else {
           console.log('[Room] Skipping chat initialization (no WebRTC)');
           // Still set chatReady to true so the timeout doesn't occur

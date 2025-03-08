@@ -24,9 +24,21 @@ export class WebRTCManager {
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
+        { 
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        { 
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
       ],
       ...config,
     };
+    
+    console.log('[WebRTC] Initialized with ICE servers:', JSON.stringify(this.peerConfig.iceServers));
   }
 
   /**
@@ -68,7 +80,24 @@ export class WebRTCManager {
     };
 
     this.peerConnection.ondatachannel = (event) => {
+      console.log('[WebRTC] Data channel received from remote peer:', event.channel.label);
       this.dataChannel = event.channel;
+      
+      // Setup data channel event handlers
+      this.dataChannel.onopen = () => {
+        console.log(`[WebRTC] Received data channel '${this.dataChannel?.label}' opened`);
+      };
+      
+      this.dataChannel.onclose = () => {
+        console.log(`[WebRTC] Received data channel '${this.dataChannel?.label}' closed`);
+      };
+      
+      this.dataChannel.onerror = (err) => {
+        console.error(`[WebRTC] Received data channel '${this.dataChannel?.label}' error:`, err);
+      };
+      
+      console.log('[WebRTC] Received data channel state:', this.dataChannel.readyState);
+      
       if (this.onDataChannelCallback) {
         this.onDataChannelCallback(this.dataChannel);
       }
@@ -80,12 +109,38 @@ export class WebRTCManager {
    */
   public createDataChannel(label: string): RTCDataChannel | null {
     if (!this.peerConnection) {
-      console.error('Peer connection not initialized');
+      console.error('[WebRTC] Peer connection not initialized when creating data channel');
       return null;
     }
 
-    this.dataChannel = this.peerConnection.createDataChannel(label);
-    return this.dataChannel;
+    try {
+      console.log('[WebRTC] Creating data channel with label:', label);
+      
+      // Create the data channel with specific options
+      this.dataChannel = this.peerConnection.createDataChannel(label, {
+        ordered: true,      // Guarantee message order
+        maxRetransmits: 30  // Allow up to 30 retransmission attempts
+      });
+      
+      // Setup data channel event handlers
+      this.dataChannel.onopen = () => {
+        console.log(`[WebRTC] Data channel '${label}' opened`);
+      };
+      
+      this.dataChannel.onclose = () => {
+        console.log(`[WebRTC] Data channel '${label}' closed`);
+      };
+      
+      this.dataChannel.onerror = (event) => {
+        console.error(`[WebRTC] Data channel '${label}' error:`, event);
+      };
+      
+      console.log('[WebRTC] Data channel created successfully, state:', this.dataChannel.readyState);
+      return this.dataChannel;
+    } catch (error) {
+      console.error('[WebRTC] Error creating data channel:', error);
+      return null;
+    }
   }
 
   /**
