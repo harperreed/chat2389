@@ -103,15 +103,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    maxHeight: 300,
-    marginVertical: 10,
-    marginHorizontal: 10,
+    height: '100%',
+    borderRadius: 0,
   },
   header: {
     marginBottom: 8,
   },
   messagesContainer: {
     flex: 1,
+    maxHeight: '85%',
   },
   messagesList: {
     padding: 10,

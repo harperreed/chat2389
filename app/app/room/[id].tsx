@@ -46,6 +46,7 @@ export default function RoomScreen() {
   // State for chat
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatReady, setChatReady] = useState(false);
+  const [isChatVisible, setIsChatVisible] = useState(false);
   
   // Service references
   const mediaManager = useRef<MediaManager | null>(null);
@@ -196,9 +197,10 @@ export default function RoomScreen() {
           setChatReady(true);
         } else {
           console.log('[Room] Skipping chat initialization (no WebRTC)');
+          // Still set chatReady to true so the timeout doesn't occur
+          setChatReady(true);
         }
         
-        setChatReady(true);
         setConnected(true);
         
         // Setup signaling handlers
@@ -682,16 +684,30 @@ export default function RoomScreen() {
     );
   }
 
+  // Render chat toggle icon
+  const renderChatIcon = (props?: IconProps) => (
+    <Icon {...props} name="message-circle-outline" />
+  );
+
   return (
     <Layout style={styles.container}>
       <View style={styles.headerContainer}>
         <Text category="h6">Room: {roomId}</Text>
-        <Button
-          size="small"
-          appearance="ghost"
-          accessoryLeft={renderCopyIcon}
-          onPress={copyRoomId}
-        />
+        <View style={styles.headerButtons}>
+          <Button
+            size="small"
+            appearance="ghost"
+            accessoryLeft={renderChatIcon}
+            onPress={() => setIsChatVisible(!isChatVisible)}
+            status={isChatVisible ? "primary" : "basic"}
+          />
+          <Button
+            size="small"
+            appearance="ghost"
+            accessoryLeft={renderCopyIcon}
+            onPress={copyRoomId}
+          />
+        </View>
       </View>
       
       {skipMediaAccess ? (
@@ -715,12 +731,24 @@ export default function RoomScreen() {
         </View>
       ) : (
         <>
-          <View style={styles.gridContainer}>
-            <VideoGrid
-              localStream={localStream}
-              remoteStreams={remoteStreams}
-              screenShareStream={screenShareStream}
-            />
+          <View style={styles.contentContainer}>
+            {isChatVisible && chatManager.current && (
+              <View style={styles.chatSidebar}>
+                <ChatInterface
+                  messages={chatMessages}
+                  onSendMessage={handleSendMessage}
+                  isReady={chatReady}
+                />
+              </View>
+            )}
+            
+            <View style={styles.gridContainer}>
+              <VideoGrid
+                localStream={localStream}
+                remoteStreams={remoteStreams}
+                screenShareStream={screenShareStream}
+              />
+            </View>
           </View>
           
           <MediaControls
@@ -733,14 +761,6 @@ export default function RoomScreen() {
             onLeaveRoom={handleLeaveRoom}
             isScreenSharing={isScreenSharing}
           />
-          
-          {chatManager.current && (
-            <ChatInterface
-              messages={chatMessages}
-              onSendMessage={handleSendMessage}
-              isReady={chatReady}
-            />
-          )}
           
           <DeviceSettings
             visible={showSettings}
@@ -815,6 +835,16 @@ const styles = StyleSheet.create({
   errorButton: {
     marginTop: 10,
   },
+  contentContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  chatSidebar: {
+    width: 300,
+    borderRightWidth: 1,
+    borderRightColor: '#EEEEEE',
+    height: '100%',
+  },
   gridContainer: {
     flex: 1,
   },
@@ -827,6 +857,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EEEEEE',
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   roomIdContainer: {
     flexDirection: 'row',

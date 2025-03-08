@@ -1,0 +1,9 @@
+- better design.
+- a private url that allows a user to sign in and go to a specific room
+    - example url: https://example.com/private/UUID/room/office
+    - this would sign in the user (UUID) into the room (office)
+    - for use with TVs, etc
+- a landing page that allows a user to sign in.
+- limiting to 2389.ai domain name (in google, but configurable)
+- ability for a user to pop out their video chat
+- abiliaty for a third party to push an rtsp sctream into a room
