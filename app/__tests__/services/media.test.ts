@@ -57,16 +57,18 @@ describe('MediaManager', () => {
     await mediaManager.initialize({ audio: true, video: true });
     
     const mockAudioTrack = mockMediaStream.getAudioTracks()[0];
-    mockAudioTrack.enabled = true;
+    // Initial state should be enabled
+    expect(mockAudioTrack.enabled).toBe(true);
     
     // Toggle audio off
     const result1 = mediaManager.toggleAudio();
     expect(result1).toBe(false);
+    expect(mockAudioTrack.enabled).toBe(false);
     
     // Toggle audio on
-    mockAudioTrack.enabled = false;
     const result2 = mediaManager.toggleAudio();
     expect(result2).toBe(true);
+    expect(mockAudioTrack.enabled).toBe(true);
   });
 
   test('should toggle video', async () => {
